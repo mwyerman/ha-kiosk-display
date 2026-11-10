@@ -18,6 +18,7 @@ export interface Timer {
   label: string;
   remaining: string;
   finished: boolean;
+  paused?: boolean;
 }
 export interface Music {
   title: string;

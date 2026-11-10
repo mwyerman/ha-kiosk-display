@@ -97,12 +97,14 @@ test('production excludes fixtures and recovers cleanly after reload', async ({
   await page.screenshot({ path: 'test-results/ambient-1280x800.png' });
 });
 
-test('diagnostics reports metrics without claiming bridge verification', async ({
+test('diagnostics reports missing bridge and browser metrics', async ({
   page,
 }) => {
   await page.goto('http://localhost:4173/?diagnostics');
-  await expect(page.getByRole('dialog')).toContainText('UNVERIFIED');
-  await expect(page.locator('.diagnostic-report')).toContainText('1280');
+  await expect(page.getByRole('dialog')).toContainText(
+    'Unavailable — open as a Kiosk Satellite custom page',
+  );
+  await expect(page.locator('.diagnostic-report').last()).toContainText('1280');
   await page.getByLabel('Device test notes').fill('Keyboard test');
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();

@@ -1,5 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import type { IntegrationStatus } from '../lib/kiosk';
+  let {
+    integration,
+    fixtureMode,
+  }: { integration: IntegrationStatus; fixtureMode: boolean } = $props();
   let report = $state('');
   let notes = $state('');
   function refresh() {
@@ -23,7 +28,7 @@
         visibility: document.visibilityState,
         secureContext: window.isSecureContext,
         bridge:
-          'UNVERIFIED — browser metrics do not establish Kiosk Satellite API or HA connection availability',
+          'Browser metrics only — see integration status above; on-device acceptance remains unverified',
       },
       null,
       2,
@@ -37,9 +42,17 @@
 </script>
 
 <p>
-  Local browser metrics only. No bridge methods are guessed or invoked; no
-  credentials or HA state are read.
+  Browser metrics and documented integration status. No tokens or raw HA state
+  are displayed.
 </p>
+<h3>
+  Integration {fixtureMode ? '(fixture mode — live connection disabled)' : ''}
+</h3>
+<pre class="diagnostic-report">{JSON.stringify(integration, null, 2)}</pre>
+{#if integration.nativeNowPlaying}<p>
+    The kiosk reports native full-screen Now Playing is shown. Review its media
+    settings to keep the recipe foregrounded; this page does not change them.
+  </p>{/if}
 <pre class="diagnostic-report">{report}</pre>
 <label for="device-notes">Device test notes (keyboard check; not saved)</label>
 <textarea

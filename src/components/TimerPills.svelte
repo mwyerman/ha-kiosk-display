@@ -11,8 +11,9 @@
       class:done={timer.finished}
       onclick={() => select(timer)}
       ><span
-        ><span class="pill-label">{timer.label}</span><b>{timer.remaining}</b
-        ></span
+        ><span class="pill-label"
+          >{timer.label}{timer.paused ? ' · Paused' : ''}</span
+        ><b>{timer.remaining}</b></span
       ><span aria-hidden="true">{timer.finished ? '!' : '◷'}</span></button
     >
   {/each}

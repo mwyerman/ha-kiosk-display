@@ -6,7 +6,7 @@ A locally hosted kitchen display for Kiosk Satellite, based on [`mockup.html`](m
 
 Svelte 5 + TypeScript + Vite frontend, with ambient and recipe views, independent scrollable ingredients/instructions, touch serving/check/highlight controls, floating timer/music presentation, accessible modal, transient feedback, and browser diagnostics.
 
-**Not connected to live services yet.** Production starts in ambient mode; tapping it explains that recipe access is not connected. Development includes a fixture recipe and **static** timer/music previews. There is no timer engine, mock voice parser, backend, persistence, or full-screen Now Playing. Touch fixture session state resets on reload. Portal acceptance is still pending.
+**Phase 2 integration implemented; Portal verification pending.** Production reads native timers and followed-player metadata through Kiosk Satellite's documented JavaScript API. It starts in ambient mode; tapping it explains that recipe access is not connected. Development includes a fixture recipe and **static** timer/music previews (live integration disabled). There is no timer engine, mock voice parser, backend, persistence, or full-screen Now Playing. Touch fixture session state resets on reload. Portal acceptance is still pending.
 
 ## Local development
 
@@ -80,7 +80,7 @@ IMAGE_TAG=fixture-initial-work docker compose -f compose.registry.yaml pull
 IMAGE_TAG=fixture-initial-work docker compose -f compose.registry.yaml up -d
 ```
 
-Open `http://<docker-host-LAN-IP>:8080` and use that URL in Kiosk Satellite. Once merged, you can use `fixture-latest`. The production equivalents are `initial-work` and `latest`; production currently shows ambient only because real recipe access is not implemented yet.
+Open `http://<docker-host-LAN-IP>:8080` and use that URL in Kiosk Satellite. Once merged, you can use `fixture-latest`. The production equivalents are `initial-work` and `latest`; production shows ambient with real timer/music pills when reported by Kiosk Satellite; recipe access is not implemented yet.
 
 For a persistent configuration, create a local `.env` next to the Compose file (do not commit credentials):
 
@@ -115,14 +115,27 @@ The production image serves static files as an unprivileged nginx user. The dev 
 
 Only expose this service on a trusted LAN or behind an appropriate reverse proxy. No credentials are needed in Phase 1. Future service credentials must remain server-side. These are relative-path local assets, not runtime third-party requests.
 
+## Phase 2 live integration
+
+Use the **production** image/tag, not `fixture-*` (development and fixture builds never invoke live APIs).
+
+1. In Kiosk Satellite, enable **Settings → Home Assistant → Custom Pages → Share Home Assistant connection**. The app uses this shared connection; there is no browser token or backend HA proxy.
+2. Open the production URL as a Custom Page. Append `?diagnostics` to inspect integration status; close the modal to use the display normally. Do not share credentials or raw HA state when reporting issues.
+3. Create a short named timer by voice. Check its pill, pause/resume, +1 minute, cancel, and completion. Finished state comes from the kiosk, not from reaching zero locally. Dismiss finished alerts using the native UI or voice; the documented control API does not list dismissal.
+4. Play/pause the kiosk's configured followed speaker. Its title/artist pill should appear only while playing. No entity ID is needed for this read-only integration. Album art and media controls are not implemented.
+5. Test sleep/wake, reload while running, multiple timers, and **reload while ringing**. Documentation says document replacement stops native alert audio; automatic restoration of ringing is not established. This app neither plays alert audio nor modifies native timer overlays.
+6. Keep the kiosk's automatic native full-screen Now Playing disabled if enabled in your existing configuration. The app never opens it, but cannot prevent an independently configured native overlay. Diagnostics reports whether the kiosk says it is shown.
+
+Timer and media snapshots are fetched on load and resume (`visibilitychange`, `pageshow`, focus, and native screen-on), with live events between snapshots. Timer display uses native deadlines; paused time stays fixed. Shared HA failures are reported in diagnostics without disabling independent native timer observation. No HA proxy or simulated production state is used.
+
 ## Portal setup and acceptance
 
 1. Deploy on a machine reachable from the Portal; use its LAN address, not `localhost`.
 2. In the installed Kiosk Satellite's Custom Page configuration, set the URL to the development or production URL above. Exact labels/API availability depend on the installed version; do not replace the working Assist/timer/Sonos setup.
 3. Test fixture UI via the registry fixture image or development mode first. Tap **Open recipe**, select the sample, scroll both columns independently, change servings, check ingredients, and select a step. Turn on timer/media previews and verify the last ingredient/step can scroll fully above the pills. Tap a timer for its explanatory modal; close it and finish cooking.
-4. Open **Diagnostics**, or append `?diagnostics` to any app URL. Capture the report and type into the notes field to test the on-screen keyboard. Notes are temporary and never uploaded. Diagnostics reports browser metrics only; **it does not verify bridge or HA access**.
+4. Open **Diagnostics**, or append `?diagnostics` to any app URL. Capture the report and type into the notes field to test the on-screen keyboard. Notes are temporary and never uploaded. Production diagnostics reports bridge version, timer/media availability, shared HA access, last timer snapshot time, and browser metrics. Fixture builds do not connect to live services.
 5. Test reload, network interruption/recovery, photo failure, landscape sizing, touch accuracy, and smooth scrolling. Background/resume the page and confirm the clock catches up. Observe brightness/sleep/wake behavior without changing the existing kiosk configuration blindly.
-6. Load production and confirm no preview controls, fixture recipe, music, or timer pills appear. Tap ambient to check the empty recipe explanation and close it.
+6. Load production and confirm no preview controls or fixture data appear. Real timer/music pills should appear only when the kiosk reports relevant state. Tap ambient to check the empty recipe explanation and close it.
 7. Record installed Kiosk Satellite/Android WebView versions and the results in [`docs/integrations.md`](docs/integrations.md). Bridge inspection requires the installed version's actual API documentation; do not infer support from desktop browser behavior or guess native bridge methods.
 
 Initial target is 1280 × 800 landscape, with responsive layout also browser-tested at 1024 × 600. The WebView must support ES2020, ResizeObserver, and native HTML dialog. Its actual version/compatibility remains an on-device check; a compatibility fallback may be needed for an old WebView.
@@ -139,7 +152,8 @@ Tests start development and production-preview servers, exercise recipe touch be
 ## Code boundaries
 
 - `src/components/`: views and presentation surfaces.
-- `src/lib/model.ts`: small presentation adapter contracts and disconnected production defaults.
+- `src/lib/model.ts`: small presentation contracts and empty initial state.
+- `src/lib/kiosk.ts`: production bridge adapter, deadline countdowns, timer controls, followed-player state, and sanitized diagnostics.
 - `src/lib/fixtures.ts`: development/fixture-mode data, excluded from production bundles.
 - `src/App.svelte`: transient UI state and surface-height measurement. No durable cooking state yet; Phase 3 will move session ownership to the controller.
 - `public/photos/`: local sample images; sources in `docs/assets.md`.

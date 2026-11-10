@@ -24,6 +24,7 @@ Implementation progress is recorded below (newest first).
 
 | Date | Phase / task | Status | Changes and verification evidence | Remaining work / blockers |
 |---|---|---|---|---|
+| 2026-11-09 | Phase 2 — native timers and followed media player | In progress | Implemented documented native timer snapshots/events, deadline display, supported controls, followed-player title/artist/status, and opt-in sanitized integration diagnostics. Shared HA connection required; no proxy fallback. `npm run check`, `npm run build`, and eight Playwright tests pass. See `docs/integrations.md`. | Portal verification on reported Kiosk Satellite 2026.11.8 remains pending, including reload while ringing, speaker association, overlay coexistence, and sleep/resume. Album art/media controls and custom dismissal are not implemented; native alerts/overlays unchanged. |
 | 2026-11-09 | Phase 1 — registry deployment | In progress | Added Actions browser checks and multi-architecture production/fixture image publication to GHCR, standalone `compose.registry.yaml`, and registry deployment instructions. Local type checks and five browser tests pass. | Actual Actions publication, GHCR visibility/access setup, Docker image execution, and Portal acceptance remain pending. |
 | 2026-11-09 | Phase 1 — app foundation and prototype port | In progress | Svelte/TypeScript component port, static fixture adapters, disconnected production defaults, Docker/Compose configuration, and setup/diagnostic docs implemented. `npm run check` and `npm run build` pass; five Playwright tests pass. See `docs/integrations.md` and `README.md`. | Portal bridge/HA access, visual/touch/performance/keyboard/sleep acceptance remain unverified. Docker configuration is supplied but not run (Docker unavailable in agent environment). |
 
@@ -104,7 +105,7 @@ Tasks:
 
 - [x] Preserve `mockup.html` as the visual reference, clearly marked as a simulation; do not accidentally deploy its mock command parser/timer engine as production behavior. See `docs/assets.md`; the reference is unchanged and excluded from deployment.
 - [ ] Establish development and Docker deployment, local URL, production build, and Kiosk Satellite Custom Page configuration. **Implemented:** Vite development/build, production and development Docker targets, Compose services, and configuration instructions in `README.md`. **Pending:** run Docker deployment and configure/test the actual Portal.
-- [ ] As soon as the app shell loads on the Portal, verify viewport dimensions, access to the documented page/JS bridge, and whether a usable HA shared connection is exposed. Use a small diagnostic surface in the app if needed; record the available APIs in `docs/integrations.md`. If the HA connection is unavailable or unsuitable, plan an authenticated backend channel for Phase 2.
+- [ ] As soon as the app shell loads on the Portal, verify viewport dimensions, access to the documented page/JS bridge, and whether a usable HA shared connection is exposed. Use a small diagnostic surface in the app if needed; record the available APIs in `docs/integrations.md`. Phase 2 requires the shared HA connection; diagnose unavailable access rather than adding a backend proxy.
 - [x] Create core screen components: `AmbientView`, `RecipeView`, `TimerPills`, `MusicPill`, `Overlay/Modal`, and a transient voice/status surface. Implemented under `src/components/`; `Modal` uses native dialog focus handling.
 - [ ] Match the prototype's visual hierarchy: green/cream palette, large recipe photo, left ingredient column, right steps column, optional bottom floating surfaces, large ambient clock. **Implemented and browser-reviewed** at 1280 × 800; final visual verification on the Portal is pending. Sample photos are local, with an illustrative pasta image rather than the mockup's exact recipe photo.
 - [x] Use initial fixture data and simulated states **behind well-defined adapters** so the UI can be tested without live services. Presentation contracts in `src/lib/model.ts`; static fixtures only in development/explicit fixture builds. Production has no fixture recipe, timers, or music; no mock service engines or command parser.
@@ -119,24 +120,24 @@ Tasks:
 
 ### Timers
 
-- [ ] Begin timer integration on the Portal with a voice-created named timer: verify whether custom-page APIs/events can enumerate it, receive updates and completion, and control/dismiss it. Check native overlay behavior alongside the custom pills. Record actual API support before committing to the adapter contract; if unavailable, investigate supported HA timer state/event integration rather than building a replacement timer engine.
-- [ ] Build a `TimerAdapter` against the **verified** timer API/events; reconcile initial fetch, event updates, reconnect and page reload.
-- [ ] Render one pill per active/finished timer with labels and accurate remaining time. Prefer deadline-based display calculation over decrementing a JS integer each second.
-- [ ] Wire pause/resume/add time/cancel/dismiss only where the verified API supports them. Retain graceful behavior for unsupported controls.
+- [ ] Begin timer integration on the Portal with a voice-created named timer: verify whether custom-page APIs/events can enumerate it, receive updates and completion, and control/dismiss it. Check native overlay behavior alongside the custom pills. Implement a provisional adapter against documented APIs, then verify and adjust on-device. If unavailable, diagnose the installed version rather than building a replacement timer engine.
+- [ ] Build a `TimerAdapter` against the documented timer API/events; reconcile initial fetch, event updates, reconnect and page reload. **Implemented:** `src/lib/kiosk.ts`, with browser mock coverage; actual Portal API behavior remains unverified.
+- [ ] Render one pill per active/finished timer with labels and accurate remaining time. Prefer deadline-based display calculation over decrementing a JS integer each second. **Implemented and browser-tested; Portal pending.**
+- [ ] Wire pause/resume/add time/cancel/dismiss only where the verified API supports them. Retain graceful behavior for unsupported controls. **Implemented:** pause/resume/+1 minute/cancel; undocumented dismissal left to native UI/voice. Portal pending.
 - [ ] Ensure completion state and alert output remain correct if the UI is sleeping, backgrounded or reloaded. Native timer ownership should survive page reload.
 - [ ] Suppress duplicate native timer UI only if supported by configuration without disabling alerts.
 
 ### Media
 
-- [ ] Read the kitchen Sonos `media_player` entity state, title/artist/art and playback status using the existing HA connection or a secure backend proxy.
-- [ ] Show the compact music pill **only when playback is active**; optionally allow a small set of play/pause/skip controls through HA services.
+- [ ] Read the kitchen Sonos `media_player` entity state, title/artist/art and playback status using the required shared HA connection or the kiosk's followed-player state (for title/artist/status). No backend proxy fallback.
+- [ ] Show the compact music pill **only when playback is active**; optionally allow a small set of play/pause/skip controls through HA services. **Implemented:** read-only followed-player pill via kiosk state/events; no entity ID required. Portal speaker association pending.
 - [ ] Playing music while cooking must not switch views. **Do not build or auto-open full-screen Now Playing.**
 
 ### Ambient
 
 - [ ] Implement browser clock/date with locale and timezone correctness; refresh appropriately after sleep/resume.
-- [ ] Start with fixed local photo fixtures; later allow a local folder/library and safe fallback images.
-- [ ] No empty footer when there are no timers and no relevant media state.
+- [x] Start with fixed local photo fixtures; later allow a local folder/library and safe fallback images. Local ambient photo and failure fallback verified in browser tests.
+- [x] No empty footer when there are no timers and no relevant media state. Production adapter test verifies surfaces disappear when timer list is empty and media pauses.
 
 - [ ] **Acceptance:** Real voice timers appear and finish correctly; Sonos play/pause metadata reflects actual playback; ambient clock is accurate after resume; recipes remain foregrounded during music playback.
 
@@ -263,7 +264,7 @@ PRs should remain independently testable. Include relevant integration findings 
 | Does custom-page JS access native timer APIs on this exact Portal build? | Phase 2 timer integration; if unavailable, investigate supported HA timer state/event integration before designing a replacement. |
 | Can the normal wake-word voice path inject an extra system prompt into Hermes? | Phase 4 optional context-injection check; if not, use `recipe_get_context()` tools. |
 | Can Hermes identify voice originating from this specific satellite? | Phase 4 tool implementation and voice QA; v1 may use fixed kitchen-target mapping while single-device, with explicit limits. |
-| Does Kiosk Satellite expose its HA connection to custom pages safely? | Phase 1 custom-page setup; otherwise use a dedicated authenticated backend channel. |
+| Does Kiosk Satellite expose its HA connection to custom pages safely? | Required shared HA connection with Custom Pages sharing enabled; report errors in diagnostics, no backend proxy fallback. |
 | Is Mealie parsing/scaling consistent across actual recipes? | Phase 3 Mealie implementation and real-recipe fixtures; preserve textual quantities where scaling is ambiguous. |
 | Can overlays and timer notifications coexist with recipe scrolling? | Real-device QA; add dynamic bottom scroll clearance, not permanent wasted footer space. |
 | Does the system recover when the Portal or app reloads? | Phase 3/6; durable session state and adapter rehydration. |

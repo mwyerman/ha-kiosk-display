@@ -39,5 +39,35 @@ Use the procedure in `README.md` and record results here. Do not mark Phase 1 ac
 
 - The app fills the real viewport rather than scaling a fixed 1280 × 800 canvas. No permanent footer is reserved; actual floating surface height becomes extra scroll clearance.
 - The production adapter is disconnected. Fixtures are dynamically loaded only in development or explicit `fixture` builds and have no simulation engines.
-- If the installed build does not expose a safe shared HA connection, use an authenticated backend channel in Phase 2. Neither path is currently claimed as verified.
-- Timer APIs are deferred to Phase 2 integration, Mealie to Phase 3, Hermes actions/context to Phase 4.
+- Superseded by the Phase 2 decision below: require the shared HA connection; do not add a backend proxy fallback.
+- Timer APIs are implemented provisionally in Phase 2 below, Mealie deferred to Phase 3, Hermes actions/context to Phase 4.
+
+## Phase 2 — documented bridge integration (2026-11-09)
+
+### Setup and evidence
+
+- User reports Kiosk Satellite **2026.11.8**, with the display app deployed on the LAN from GHCR. No direct Portal/HA access is available to the agent.
+- Reference read: https://kiosksatellite.com/docs/js-api/ (current website; not a version-pinned confirmation of the installed build).
+- `npm run check`: zero errors/warnings; `npm run build`: production builds successfully.
+- `npm test`: eight Playwright browser tests pass, including three production tests with an injected bridge. These validate adapter logic, **not** Android/HA integration.
+- Mock bridge coverage: initial fetch, timer change/finish events, pause/+1 minute/cancel, fixed paused time, deadline countdown without events, no locally manufactured completion, followed-player playback gating, reload snapshot recovery, shared HA denial with sanitized errors, and refresh after native screen-on.
+
+### Implemented contract
+
+- `window.kioskSatellite.getVoiceTimers()` and `kiosksatellite:voice-timers` provide authoritative timer snapshots. Countdown uses `ends_at` (epoch seconds/milliseconds or ISO timestamp); paused timers use `seconds_left`. Zero alone does not mark a timer finished. Epoch units will be confirmed on-device.
+- Listen before fetching and ignore fetch responses overtaken by events/newer refreshes. Refresh on page show, visibility resume, focus, native screen-on, and HA-ready. Dispose listeners/interval on unmount. No timer persistence, engine, or browser alert audio.
+- `controlVoiceTimer(id, action, duration)` provides pause/resume/cancel and +1 minute. Await native snapshots after actions and report false/rejected results without optimistic local changes. Finished alerts remain native-dismissed: `dismiss` is not a documented action for this method.
+- `getKioskState()` plus `kiosksatellite:kiosk-state` supplies followed-player state/title/artist/source. Only `playing` produces a pill; no view changes. No speaker entity setting, album artwork, or media service controls in this implementation. Confirm that the followed player corresponds to the user's linked Sonos.
+- Require shared HA access, checked with `ha.call({type: 'auth/current_user'})`; discard its result. No token in the page and no backend fallback. The timer/media bridge APIs operate independently, so HA errors are diagnostic rather than a reason to hide valid native state. No raw HA state/error messages are shown.
+- Production only: development and fixture builds remain static previews. Outside the kiosk, production retains ambient/recipe placeholder and reports missing capabilities in `?diagnostics`.
+
+### Portal acceptance / limitations — all pending
+
+1. Enable **Share Home Assistant connection** under Home Assistant → Custom Pages. Check bridge version, timers/media and HA status in production `?diagnostics`.
+2. Create multiple named timers by voice; verify running/paused deadlines and supported controls. Finish and dismiss an alert using native UI/voice; confirm the custom finished pill disappears.
+3. Test reload during countdown, screen sleep/background/resume, and particularly **reload while ringing**. Documentation explicitly says document replacement clears native timer presentation and stops alert audio; it only explicitly promises restoration of countdowns. Ringing restoration is unknown, not guaranteed by this app.
+4. Native overlays and alerts are not suppressed or reconfigured. Check duplicate UI and scrolling; only suppress native presentation later if configuration safely preserves alerts.
+5. Play/pause the linked Sonos and change tracks. Verify title/artist and that recipes remain foregrounded. Native full-screen Now Playing settings are external to this page: leave them disabled for this product; diagnostics exposes `nowPlayingShown` but this app never opens or closes that overlay.
+6. Verify actual locale/timezone and ambient clock after sleep. Local photo fallback and hidden empty surfaces are browser-verified; physical display acceptance remains pending.
+
+No existing voice routing, wake-word configuration, timer ownership, Sonos configuration, or credentials were changed.
