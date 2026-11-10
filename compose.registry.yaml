@@ -1,0 +1,7 @@
+# Standalone deployment: no source checkout or local image build required.
+services:
+  display:
+    image: ghcr.io/mwyerman/ha-kiosk-display:${IMAGE_TAG:-latest}
+    ports:
+      - "${DISPLAY_PORT:-8080}:8080"
+    restart: unless-stopped

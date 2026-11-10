@@ -24,6 +24,7 @@ Implementation progress is recorded below (newest first).
 
 | Date | Phase / task | Status | Changes and verification evidence | Remaining work / blockers |
 |---|---|---|---|---|
+| 2026-11-09 | Phase 1 — registry deployment | In progress | Added Actions browser checks and multi-architecture production/fixture image publication to GHCR, standalone `compose.registry.yaml`, and registry deployment instructions. Local type checks and five browser tests pass. | Actual Actions publication, GHCR visibility/access setup, Docker image execution, and Portal acceptance remain pending. |
 | 2026-11-09 | Phase 1 — app foundation and prototype port | In progress | Svelte/TypeScript component port, static fixture adapters, disconnected production defaults, Docker/Compose configuration, and setup/diagnostic docs implemented. `npm run check` and `npm run build` pass; five Playwright tests pass. See `docs/integrations.md` and `README.md`. | Portal bridge/HA access, visual/touch/performance/keyboard/sleep acceptance remain unverified. Docker configuration is supplied but not run (Docker unavailable in agent environment). |
 
 ## Purpose and starting point

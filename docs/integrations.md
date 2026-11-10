@@ -6,7 +6,7 @@
 
 - Agent host: Node v22.23.4, npm 10.9.9; exact dependency versions in `package-lock.json`.
 - Automated checks: Playwright Chromium; 1280 × 800 and 1024 × 600 desktop viewports.
-- Docker is not installed in this environment; Dockerfile/Compose execution is **unverified**.
+- Docker is not installed in this environment; Dockerfile/Compose execution is **unverified**. The GHCR Actions workflow and registry Compose deployment are configured, but actual workflow execution/publication and both architecture images still require validation on GitHub/the Docker host.
 - No Portal, Kiosk Satellite, Home Assistant, or Hermes instance was accessible to the agent. No operational configuration was changed.
 
 ### Observed results
