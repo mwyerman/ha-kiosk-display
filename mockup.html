@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hearth Kitchen v7</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#26372b;background:#141915}
+*{box-sizing:border-box} body{margin:0;overflow:hidden;background:#141915} button,input{font:inherit} button{border:0;cursor:pointer} button:focus-visible,input:focus-visible{outline:3px solid #95b89e;outline-offset:2px}
+.host{width:100vw;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+:fullscreen .host{gap:0;padding:0}
+.chrome,.dev{width:min(100%,1280px);display:flex;align-items:center;justify-content:space-between;color:#d9e1d8;font-size:13px;gap:12px}
+.chrome .muted,.dev .muted{opacity:.68}.chrome button,.dev button,.dev label{background:#233328;color:#edf4ea;border-radius:10px;padding:9px 13px}.dev{flex-wrap:wrap;justify-content:flex-start}.dev input[type=text]{min-width:min(340px,100%);max-width:100%;padding:10px 12px;border-radius:10px;border:1px solid #435448;background:#f7faf5;color:#203126}.dev input[type=file]{display:none}
+.frame{width:1280px;height:800px;flex:none;background:#eff4ec;overflow:hidden;position:relative;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.screen{height:100%;display:flex;flex-direction:column;position:relative}
+.main{flex:1;min-height:0;overflow:hidden}
+.footer{height:84px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(180deg,#eef3eb,#dfe8dd);border-top:1px solid #d1dbcf;gap:14px}
+.footer[hidden]{display:none}
+.slot{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.slot.right{justify-content:flex-end}
+.pill-row{display:flex;gap:10px;align-items:center;max-width:100%;overflow-x:auto;scrollbar-width:thin;padding:2px}
+.pill{display:flex;align-items:center;gap:11px;border-radius:999px;padding:10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.12);white-space:nowrap;flex:none}
+.timer-pill{background:#f6f8f3;color:#33513d;border:1px solid #d8e0d5}.timer-pill.done{background:#f4dfd2;color:#744928;border-color:#ebc7b0}
+.timer-pill span,.music-pill span{display:block;font-size:12px;opacity:.78}.timer-pill b,.music-pill b{font-size:21px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.music-pill{background:#30473a;color:#eef5ec;border:1px solid #486557;min-width:220px;justify-content:flex-start}.music-pill .disc{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:#486556;color:#fff;font-size:18px}.music-pill .meta{display:flex;flex-direction:column;gap:1px;min-width:0}.music-pill strong{font-size:16px;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.recipe{height:100%;display:grid;grid-template-columns:420px 1fr;gap:24px;padding:26px 28px 18px;min-height:0;background:#eff4ec}
+.recipe > .left,.rightcol{display:flex;flex-direction:column;min-height:0}.photo{height:248px;border-radius:22px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.18);background:#c8d0c7}.photo img{width:100%;height:100%;object-fit:cover}
+.name{font-size:34px;line-height:1.05;letter-spacing:-.04em;margin:16px 0 8px}.sub{font-size:16px;color:#6a756d}
+.ingredients{margin-top:18px;background:#f7faf5;border:1px solid #dfe6dc;border-radius:20px;padding:18px;display:flex;flex-direction:column;min-height:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.65)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.eyebrow{font-size:13px;letter-spacing:.15em;font-weight:800;color:#748172}.portion{display:flex;align-items:center;gap:8px;font-size:14px;color:#607063}.mini{width:26px;height:26px;border-radius:999px;background:#e6ede4;color:#274331}
+.ingredientlist{overflow:auto;min-height:0;scrollbar-width:thin}
+.ing{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #edf2ea;color:#2e4033}.ing:last-child{border-bottom:none}.box{width:22px;height:22px;border-radius:7px;border:1px solid #c7d1c7;background:#fff;display:grid;place-items:center;font-size:14px;color:#356047}.ing.checked .box{background:#dcebde;border-color:#b6c7b7}.amt{color:#6b766d;width:88px;flex:none}
+.righthead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-bottom:12px}.righthead .eyebrow{font-size:14px}.hint{font-size:14px;color:#7a867d}
+.steps{overflow:auto;min-height:0;display:flex;flex-direction:column;gap:12px;padding-right:8px;scrollbar-width:thin}
+.step{flex:none;background:#f7faf5;border:1px solid #dfe6dc;border-radius:18px;padding:17px 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)} .step.selected{border-color:#9bb59d;box-shadow:0 0 0 3px rgba(154,183,158,.24)} .stepnum{font-size:13px;letter-spacing:.12em;color:#79857c;font-weight:800;margin-bottom:4px}.step h3{margin:0 0 6px;font-size:24px;line-height:1.06;letter-spacing:-.03em}.step p{margin:0;font-size:17px;line-height:1.42;color:#415044}
+.ambient{height:100%;position:relative;background:#1b231d;overflow:hidden}.framephoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,18,15,.18),rgba(16,20,17,.30) 55%,rgba(12,16,13,.64))}
+.ambient-info{position:absolute;left:32px;right:32px;bottom:28px;display:grid;gap:8px}
+.idleclock{color:#eef4eb;font-size:68px;line-height:1;letter-spacing:-.05em;text-shadow:0 2px 20px rgba(0,0,0,.28)}
+.idledate{color:#e0e8de;font-size:18px;letter-spacing:.03em;text-shadow:0 2px 12px rgba(0,0,0,.25)}
+.ambient-timers:empty{display:none}
+.overlay{position:absolute;inset:0;background:rgba(17,22,18,.28);display:none;place-items:center;z-index:20}.overlay.on{display:grid}.modal{width:440px;background:#f8fbf6;border-radius:22px;padding:24px;color:#25362a;box-shadow:0 18px 45px rgba(0,0,0,.28)} .modal h2{margin:0 0 8px;font-size:28px}.modal p{margin:0 0 18px;color:#5e6d61;line-height:1.4}.modal label{display:block;font-size:14px;color:#69786c;margin:10px 0 6px}.modal input{width:100%;padding:12px 13px;border-radius:12px;border:1px solid #d5ded2;background:#fff}.timerdetail{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 18px}.timerdetail button{background:#e9f0e6;color:#274432;padding:12px 16px;border-radius:12px}.timerdetail strong{font-size:42px;letter-spacing:-.05em;font-variant-numeric:tabular-nums}.modal-actions{display:flex;justify-content:flex-end;gap:10px}.modal-actions button{padding:12px 16px;border-radius:12px;background:#e7eee4;color:#2a4031}.modal-actions .primary{background:#324a3b;color:#eef5ec}
+.talk{position:absolute;left:50%;top:22px;transform:translateX(-50%) translateY(-10px);opacity:0;pointer-events:none;background:#203427;color:#edf4eb;padding:12px 16px;border-radius:14px;box-shadow:0 14px 30px rgba(0,0,0,.22);transition:.22s ease;z-index:30}.talk.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="host">
+  <div class="chrome"><span><b>PORTAL 10 / 2ND GEN</b><span class="muted"> · 1280 × 800 landscape preview</span></span><button id="full">⛶ Fullscreen preview</button></div>
+  <main class="frame" id="frame">
+    <div class="screen">
+      <div class="main" id="main"></div>
+      <div class="footer" id="footer" hidden></div>
+    </div>
+    <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+    <div class="talk" id="talk"></div>
+  </main>
+  <div class="dev">
+    <span>Simulate:</span>
+    <button id="cookingToggle">Start cooking</button>
+    <button id="playbackToggle">Start music</button>
+    <button id="addOutside">Simulate timer</button>
+    <label for="photoInput">Use my photo</label><input id="photoInput" type="file" accept="image/*">
+    <span class="muted">Voice:</span><input id="command" type="text" placeholder="Try: start cooking, play music, start a 3 minute tea timer"><button id="send">Send</button>
+  </div>
+</div>
+<script>
+'use strict';
+const recipePhoto='https://az-wa-pr-rdb-cdn.azurewebsites.net/foodservice-sea/creamy-tomato-pasta/1498238909.jpg?preset=MobileLarge';
+const defaultHomePhoto='https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1600&q=85&auto=format&fit=crop';
+let homePhoto=defaultHomePhoto,cooking=false,playing=false,servings=4,selected=3,checked=new Set([0,1]);
+let timers=[],nextTimerId=1,activeModal=null;
+const ingredients=[['2 tbsp','Olive oil'],['4','Garlic cloves'],['400 g','Crushed tomatoes'],['200 ml','Heavy cream'],['350 g','Pasta'],['1 handful','Fresh basil'],['to taste','Salt & black pepper'],['40 g','Parmesan cheese']];
+const steps=[['Prepare your ingredients','Mince the garlic, roughly chop the basil, and measure out the cream and tomatoes.'],['Sauté the garlic','Heat olive oil in a large pan over medium heat. Add garlic and cook until fragrant, about 1–2 minutes.'],['Make the tomato sauce','Add the tomatoes, stir to combine, and simmer gently for 10 minutes. Season with salt and pepper.'],['Add the cream','Lower the heat and stir in the cream. Let the sauce warm through without boiling.'],['Cook the pasta','Boil the pasta until al dente, then reserve some cooking water before draining.'],['Combine pasta and sauce','Toss the pasta with the sauce. Add a splash of cooking water if needed to loosen.'],['Finish and serve','Top with basil and parmesan, then serve immediately.']];
+function timefmt(n){n=Math.max(0,Math.ceil(n));let h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=n%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+function scaled(s){return s.replace(/\d+(?:\.\d+)?/g,n=>{const v=Number(n)*servings/4;return Number.isInteger(v)?String(v):String(Math.round(v*10)/10)})}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(t){const el=document.getElementById('talk');el.textContent=t;el.classList.add('on');clearTimeout(window.tt);window.tt=setTimeout(()=>el.classList.remove('on'),2600)}
+function setCooking(v){cooking=!!v;render();toast(cooking?'Cooking session started':'Cooking session finished')}
+function setMusic(v){
+  playing=!!v;
+  document.getElementById('playbackToggle').textContent=playing?'Stop music':'Start music';
+  if(cooking) renderStatus();
+  toast(playing?'Music is playing':'Music stopped');
+}
+function render(){const main=document.getElementById('main');
+  if(cooking){
+    main.innerHTML=`<div class="recipe"><section class="left"><div class="photo"><img src="${recipePhoto}" alt="Creamy tomato pasta" onerror="this.style.display='none'"></div><div><h1 class="name">Creamy Tomato Pasta</h1><div class="sub">◷ 30 min &nbsp; · &nbsp; Easy &nbsp; · &nbsp; ${servings} servings</div></div><div class="ingredients"><div class="row" style="margin-bottom:8px"><span class="eyebrow">INGREDIENTS</span><span class="portion"><button class="mini" id="minus">−</button>${servings}<button class="mini" id="plus">+</button></span></div><div class="ingredientlist">${ingredients.map((it,i)=>`<button class="ing ${checked.has(i)?'checked':''}" data-ing="${i}"><div class="box">${checked.has(i)?'✓':''}</div><div class="amt">${escapeHtml(scaled(it[0]))}</div><div>${escapeHtml(it[1])}</div></button>`).join('')}</div></div></section><section class="rightcol"><div class="righthead"><div><div class="eyebrow">INSTRUCTIONS · ${steps.length} steps</div><div class="hint">Scroll freely or tap a step to highlight it.</div></div></div><div class="steps">${steps.map((st,i)=>`<button class="step ${selected===i+1?'selected':''}" data-step="${i+1}"><div class="stepnum">STEP ${i+1}</div><h3>${escapeHtml(st[0])}</h3><p>${escapeHtml(st[1])}</p></button>`).join('')}</div></section></div>`;
+    const ingScroll=()=>document.querySelector('.ingredientlist')?.scrollTop||0; const stepScroll=()=>document.querySelector('.steps')?.scrollTop||0;
+    main.querySelectorAll('[data-ing]').forEach(el=>el.onclick=()=>{let is=ingScroll(),ss=stepScroll(),i=+el.dataset.ing; checked.has(i)?checked.delete(i):checked.add(i); render(); document.querySelector('.ingredientlist').scrollTop=is; document.querySelector('.steps').scrollTop=ss;});
+    main.querySelectorAll('[data-step]').forEach(el=>el.onclick=()=>{selected=+el.dataset.step; document.querySelectorAll('.step').forEach(e=>e.classList.toggle('selected',+e.dataset.step===selected));});
+    document.getElementById('minus').onclick=()=>{let is=ingScroll(),ss=stepScroll(); servings=Math.max(1,servings-1); render(); document.querySelector('.ingredientlist').scrollTop=is; document.querySelector('.steps').scrollTop=ss;};
+    document.getElementById('plus').onclick=()=>{let is=ingScroll(),ss=stepScroll(); servings=Math.min(12,servings+1); render(); document.querySelector('.ingredientlist').scrollTop=is; document.querySelector('.steps').scrollTop=ss;};
+  } else {
+    main.innerHTML=`<div class="ambient"><img class="framephoto" id="homeImage" src="${homePhoto}" alt="Personal photo frame"><div class="shade"></div><div class="ambient-info"><div class="idleclock" id="idleClock"></div><div class="idledate" id="idleDate"></div><div class="ambient-timers" id="ambientTimers"></div></div></div>`;
+    document.getElementById('homeImage').onerror=e=>e.target.style.display='none'; clockUpdate();
+  }
+  document.getElementById('cookingToggle').textContent=cooking?'Finish cooking':'Start cooking';
+  renderStatus();
+}
+function renderStatus(){
+  const footer = document.getElementById('footer');
+  const ambientTimers = document.getElementById('ambientTimers');
+  const activeTimers=timers.filter(t=>!t.removed && (!t.done || t.remaining===0));
+  const timerPills=activeTimers.length?`<div class="pill-row">${activeTimers.map(t=>`<button class="pill timer-pill ${t.done?'done':''}" data-timer="${t.id}"><div><span>${escapeHtml(t.label)}</span><b data-clock="${t.id}">${timefmt(t.remaining)}</b></div>${t.done?'!':t.paused?'▶':'◷'}</button>`).join('')}</div>` : '';
+  const musicPill=cooking && playing?`<button class="pill music-pill" id="miniMusic"><div class="disc">♫</div><div class="meta"><span>Kitchen speaker</span><strong>Soft Sunday</strong></div>Ⅱ</button>` : '';
+  footer.hidden = !cooking || (!timerPills && !musicPill);
+  footer.innerHTML = footer.hidden ? '' : `<div class="slot left">${timerPills}</div><div class="slot right">${musicPill}</div>`;
+  if (ambientTimers) ambientTimers.innerHTML = timerPills;
+
+  const status = cooking ? footer : ambientTimers;
+  status.querySelectorAll('[data-timer]').forEach(button => {
+    button.onclick = () => openTimer(Number(button.dataset.timer));
+  });
+  const musicButton = document.getElementById('miniMusic');
+  if (musicButton) musicButton.onclick = () => setMusic(false);
+}
+function clockUpdate(){const d=new Date(); const t=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}); const da=d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'}); const tc=document.getElementById('idleClock'); const dc=document.getElementById('idleDate'); if(tc)tc.textContent=t; if(dc)dc.textContent=da;}
+function showModal(body){document.getElementById('modal').innerHTML=body; document.getElementById('overlay').classList.add('on')}
+function hideModal(){document.getElementById('overlay').classList.remove('on'); activeModal=null}
+function openCreateTimer(){activeModal='new'; showModal(`<h2>New timer</h2><p>Timers are independent of recipes and music. In the real dashboard these would usually be created by voice.</p><label for="timerName">Name</label><input id="timerName" value="Kitchen timer" maxlength="36"><label for="timerMinutes">Duration in minutes</label><input id="timerMinutes" type="number" min="0.1" max="600" step="0.5" value="5"><div class="modal-actions"><button id="cancel">Cancel</button><button class="primary" id="create">Start timer</button></div>`); document.getElementById('cancel').onclick=hideModal; document.getElementById('create').onclick=()=>{const label=document.getElementById('timerName').value.trim()||'Kitchen timer'; const mins=Math.max(.1, Number(document.getElementById('timerMinutes').value)||5); createTimer(label,Math.round(mins*60)); hideModal();};}
+function createTimer(label,secs){const t={id:nextTimerId++,label,remaining:Math.max(1,secs),paused:false,done:false}; timers.push(t); renderStatus(); toast(`${label} started`); return t;}
+function openTimer(id){const t=timers.find(x=>x.id===id); if(!t)return; activeModal=id; showModal(`<h2>${escapeHtml(t.label)}</h2><p>${t.done?'Time is up!':'Manage this timer without changing the current screen.'}</p><div class="timerdetail"><button id="timerMinus">−1m</button><strong id="modalCount">${timefmt(t.remaining)}</strong><button id="timerPlus">+1m</button></div><div class="modal-actions"><button id="removeTimer">${t.done?'Dismiss':'Delete'}</button><button id="toggleTimer" class="primary">${t.done?'Restart':t.paused?'Resume':'Pause'}</button></div>`); document.getElementById('timerMinus').onclick=()=>{t.remaining=Math.max(0,t.remaining-60); t.done=t.remaining===0; renderStatus(); openTimer(id)}; document.getElementById('timerPlus').onclick=()=>{t.remaining+=60; if(t.remaining>0){t.done=false;t.paused=false} renderStatus(); openTimer(id)}; document.getElementById('removeTimer').onclick=()=>{timers=timers.filter(x=>x.id!==id); hideModal(); renderStatus()}; document.getElementById('toggleTimer').onclick=()=>{if(t.done){t.remaining=300;t.done=false;t.paused=false}else t.paused=!t.paused; renderStatus(); openTimer(id)};}
+function updateTimers(){for(const t of timers){document.querySelectorAll(`[data-clock="${t.id}"]`).forEach(el=>el.textContent=timefmt(t.remaining));} if(typeof activeModal==='number'){const t=timers.find(x=>x.id===activeModal), el=document.getElementById('modalCount'); if(t&&el) el.textContent=timefmt(t.remaining);} }
+function tickTimers(){let finished=[]; timers.forEach(t=>{if(!t.paused&&!t.done&&t.remaining>0){t.remaining--; if(!t.remaining){t.done=true; t.paused=true; finished.push(t)}}}); if(finished.length){renderStatus(); if(activeModal===null) openTimer(finished[0].id); toast(finished.map(t=>t.label).join(', ')+' finished')} else updateTimers()}
+function voiceCommand(){const input=document.getElementById('command'), txt=input.value.trim(), t=txt.toLowerCase(); if(!t) return;
+  if(/(finish|end|close|stop) (the )?(recipe|cooking|meal)/.test(t)) setCooking(false);
+  else if(/(start|begin|open|show) (the )?(recipe|cooking|pasta)/.test(t)) setCooking(true);
+  else if(/(stop|pause|turn off) (the )?(music|speaker|playback)/.test(t)) setMusic(false);
+  else if(/(start|play|resume|turn on) (the )?(music|speaker|playback)/.test(t)) setMusic(true);
+  else if(/(cancel|delete|remove|stop) (the )?(.+?) timer/.test(t)){let name=t.match(/(?:cancel|delete|remove|stop) (?:the )?(.+?) timer/)[1]; let idx=timers.findIndex(x=>x.label.toLowerCase().includes(name)||name==='timer'); if(idx>=0){let l=timers[idx].label; timers.splice(idx,1); renderStatus(); toast(l+' removed')} else toast('Timer not found')}
+  else if(/(?:set|start|create|add).*timer|(?:\d+)\s*(?:minutes?|mins?|seconds?|secs?|hours?|hrs?)/.test(t)){let n=t.match(/(\d+(?:\.\d+)?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)/); let seconds=n?Math.round(Number(n[1])*(n[2].startsWith('sec')?1:n[2].startsWith('h')?3600:60)):300; let nm=t.match(/(?:for|called|named) (?:the )?([a-z][a-z ]{1,25}) timer/); if(!nm) nm=t.match(/(?:timer for|timer called|timer named) ([a-z][a-z ]{1,25})/); let label=nm?nm[1].trim():t.includes('tea')?'Tea':t.includes('pasta')?'Pasta':'Kitchen timer'; createTimer(label.replace(/\b\w/g,m=>m.toUpperCase()),seconds)}
+  else if(/step|instruction/.test(t)){if(!cooking) toast('Open a recipe to navigate steps'); else {const n=t.match(/\d+/); if(n){selected=Math.max(1,Math.min(steps.length,+n[0])); document.querySelectorAll('.step').forEach(e=>e.classList.toggle('selected',+e.dataset.step===selected)); document.querySelector(`[data-step="${selected}"]`)?.scrollIntoView({block:'nearest',behavior:'smooth'}); toast('Showing step '+selected)} else toast('Try “show step 4”')}}
+  else if(/ingredient/.test(t)){if(cooking){document.querySelector('.ingredients').style.outline='3px solid #88a88c'; toast('Ingredient list highlighted')} else toast('Open a recipe to show ingredients')}
+  else if(/home|idle|clock/.test(t)) toast('The clock shows when no cooking session is active');
+  else toast('Try “start cooking”, “play music”, or “start a 3 minute tea timer”');
+  input.value='';}
+function resize(){
+  const host = document.querySelector('.host');
+  const chrome = document.querySelector('.chrome');
+  const controls = document.querySelector('.dev');
+  const style = getComputedStyle(host);
+  const width = host.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const height = host.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
+    - chrome.offsetHeight - controls.offsetHeight - 2 * parseFloat(style.rowGap);
+  const scale = Math.max(0, Math.min(width / 1280, height / 800));
+  const frame = document.getElementById('frame');
+  frame.style.transform = `scale(${scale})`;
+  frame.style.margin = `${(800 * scale - 800) / 2}px ${(1280 * scale - 1280) / 2}px`;
+  frame.style.borderRadius = document.fullscreenElement ? '0' : '20px';
+}
+
+document.getElementById('cookingToggle').onclick=()=>setCooking(!cooking);
+document.getElementById('playbackToggle').onclick=()=>setMusic(!playing);
+document.getElementById('addOutside').onclick=openCreateTimer;
+document.getElementById('send').onclick=voiceCommand;
+document.getElementById('command').onkeydown=e=>{if(e.key==='Enter') voiceCommand()};
+document.getElementById('photoInput').onchange=e=>{const file=e.target.files?.[0]; if(!file) return; if(homePhoto.startsWith('blob:')) URL.revokeObjectURL(homePhoto); homePhoto=URL.createObjectURL(file); if(!cooking) render(); toast('Using your photo')};
+document.getElementById('overlay').onclick=e=>{if(e.target.id==='overlay') hideModal()};
+document.getElementById('full').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
+window.addEventListener('resize',resize); document.addEventListener('fullscreenchange',()=>{document.querySelector('.chrome').style.display=document.fullscreenElement?'none':'flex'; document.querySelector('.dev').style.display=document.fullscreenElement?'none':'flex'; resize()});
+setInterval(tickTimers,1000); setInterval(clockUpdate,15000); render(); resize();
+</script>
+</body>
+</html>
