@@ -56,7 +56,7 @@ Use the procedure in `README.md` and record results here. Do not mark Phase 1 ac
 
 - `window.kioskSatellite.getVoiceTimers()` and `kiosksatellite:voice-timers` provide authoritative timer snapshots. Countdown uses `ends_at` (epoch seconds/milliseconds or ISO timestamp); paused timers use `seconds_left`. Zero alone does not mark a timer finished. Epoch units will be confirmed on-device.
 - Listen before fetching and ignore fetch responses overtaken by events/newer refreshes. Refresh on page show, visibility resume, focus, native screen-on, and HA-ready. Dispose listeners/interval on unmount. No timer persistence, engine, or browser alert audio.
-- `controlVoiceTimer(id, action, duration)` provides pause/resume/cancel and +1 minute. Await native snapshots after actions and report false/rejected results without optimistic local changes. Finished alerts remain native-dismissed: `dismiss` is not a documented action for this method.
+- `controlVoiceTimer(id, action, duration)` provides pause/resume/cancel and +1 minute. Await native snapshots after actions and report false/rejected results without optimistic local changes. Finished alerts now offer **Dismiss**, mapped to native `cancel` (not an invented `dismiss` action). Cancellation is allowed for finished timers; other controls remain restricted to unfinished timers. Removal is never optimistic. Portal verification of finished cancellation stopping audio is still pending.
 - `getKioskState()` plus `kiosksatellite:kiosk-state` supplies followed-player state/title/artist/source. Only `playing` produces a pill; no view changes. No speaker entity setting, album artwork, or media service controls in this implementation. Confirm that the followed player corresponds to the user's linked Sonos.
 - Require shared HA access, checked with `ha.call({type: 'auth/current_user'})`; discard its result. No token in the page and no backend fallback. The timer/media bridge APIs operate independently, so HA errors are diagnostic rather than a reason to hide valid native state. No raw HA state/error messages are shown.
 - Production only: development and fixture builds remain static previews. Outside the kiosk, production retains ambient/recipe placeholder and reports missing capabilities in `?diagnostics`.
@@ -64,10 +64,17 @@ Use the procedure in `README.md` and record results here. Do not mark Phase 1 ac
 ### Portal acceptance / limitations — all pending
 
 1. Enable **Share Home Assistant connection** under Home Assistant → Custom Pages. Check bridge version, timers/media and HA status in production `?diagnostics`.
-2. Create multiple named timers by voice; verify running/paused deadlines and supported controls. Finish and dismiss an alert using native UI/voice; confirm the custom finished pill disappears.
+2. Create multiple named timers by voice; verify running/paused deadlines and supported controls. Finish and dismiss an alert using the custom Dismiss button; confirm the native audio stops and the custom finished pill disappears.
 3. Test reload during countdown, screen sleep/background/resume, and particularly **reload while ringing**. Documentation explicitly says document replacement clears native timer presentation and stops alert audio; it only explicitly promises restoration of countdowns. Ringing restoration is unknown, not guaranteed by this app.
 4. Native overlays and alerts are not suppressed or reconfigured. Check duplicate UI and scrolling; only suppress native presentation later if configuration safely preserves alerts.
 5. Play/pause the linked Sonos and change tracks. Verify title/artist and that recipes remain foregrounded. Native full-screen Now Playing settings are external to this page: leave them disabled for this product; diagnostics exposes `nowPlayingShown` but this app never opens or closes that overlay.
 6. Verify actual locale/timezone and ambient clock after sleep. Local photo fallback and hidden empty surfaces are browser-verified; physical display acceptance remains pending.
+
+### On-device feedback and timer fixes
+
+- User confirms music/now-playing and basic timer display work on the Portal. Detailed pause/resume, multi-timer, and sleep checks are not yet reported.
+- User reports countdown one second behind the native display. Changed display rounding from ceiling to floor, with a 100ms recompute cadence so a misaligned one-second interval does not add another second of lag. Countdown still clamps at zero and completion still requires a native finished snapshot. Device alignment after this change remains unverified.
+- Added finished-timer cancellation through `controlVoiceTimer(id, 'cancel')`. All nine Playwright tests pass, including fractional-second boundary updates, successful cancellation, and failure retention/retry. `npm run check` reports zero errors/warnings and `npm run build` succeeds. Finished cancellation on the installed version remains unverified.
+- User confirms reloading while ringing stops the alert. This is a **confirmed unresolved limitation**, not an assumed recovery guarantee. These changes do not modify native audio or implement a replacement alert engine.
 
 No existing voice routing, wake-word configuration, timer ownership, Sonos configuration, or credentials were changed.

@@ -21,7 +21,13 @@ async function installBridge(page: Page, denied = false) {
           nowPlayingShown: false,
         },
       };
-      const mock = { timers: [timer], state, calls: [] as unknown[], reads: 0 };
+      const mock = {
+        timers: [timer],
+        state,
+        calls: [] as unknown[],
+        reads: 0,
+        failControl: false,
+      };
       Object.assign(window, { mock });
       Object.assign(window, {
         kioskSatellite: {
@@ -44,6 +50,7 @@ async function installBridge(page: Page, denied = false) {
             duration: unknown,
           ) => {
             mock.calls.push({ id, action, duration });
+            if (mock.failControl) return false;
             if (action === 'pause') {
               timer.is_active = false;
               timer.seconds_left = 90;
@@ -117,10 +124,47 @@ test('production uses native snapshots, events, controls and followed media', as
   );
   await expect(page.locator('.timer-pill')).toContainText('Finished');
   await page.locator('.timer-pill').click();
-  await expect(page.getByRole('dialog')).toContainText(
-    'native timer interface',
-  );
   await expect(page.getByRole('button', { name: '+1 minute' })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Pause', exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
+  await expect(page.locator('.timer-pill')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).mock.calls.at(-1))).toEqual({
+    id: 'pasta',
+    action: 'cancel',
+    duration: undefined,
+  });
+});
+
+test('failed finished-timer cancellation retains the pill until native confirmation', async ({
+  page,
+}) => {
+  await installBridge(page);
+  await page.goto('http://localhost:4173');
+  await expect(page.locator('.timer-pill')).toBeVisible();
+  await page.evaluate(() => {
+    const mock = (window as any).mock;
+    mock.timers[0].finished = true;
+    mock.timers[0].is_active = false;
+    mock.failControl = true;
+    window.dispatchEvent(
+      new CustomEvent('kiosksatellite:voice-timers', {
+        detail: { timers: mock.timers },
+      }),
+    );
+  });
+  await page.locator('.timer-pill').click();
+  await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
+  await expect(
+    page.getByText('Timer action failed or unsupported'),
+  ).toBeVisible();
+  await expect(page.locator('.timer-pill')).toContainText('Finished');
+  await page.evaluate(() => {
+    (window as any).mock.failControl = false;
+  });
+  await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
+  await expect(page.locator('.timer-pill')).toHaveCount(0);
 });
 
 test('diagnostics reports shared HA access errors without leaking raw results', async ({
@@ -147,9 +191,28 @@ test('deadline countdown updates without events and zero does not manufacture co
   page,
 }) => {
   await installBridge(page);
-  await page.clock.install();
+  const start = new Date('2026-11-09T12:00:00Z');
+  await page.clock.install({ time: start });
+  await page.clock.pauseAt(new Date(start.getTime() + 1000));
   await page.goto('http://localhost:4173');
+  await expect(page.locator('.timer-pill')).toBeVisible();
+  // Initialize the deadline after the clock has taken effect in the document.
+  await page.evaluate(() => {
+    const mock = (window as any).mock;
+    mock.timers[0].ends_at = new Date(Date.now() + 120_000).toISOString();
+    window.dispatchEvent(
+      new CustomEvent('kiosksatellite:voice-timers', {
+        detail: { timers: mock.timers },
+      }),
+    );
+  });
   await expect(page.locator('.timer-pill')).toContainText('2:00');
+  // Fractional seconds round down immediately, without waiting for the old
+  // one-second interval to tick. Crossing a boundary updates within 100ms.
+  await page.clock.fastForward(100);
+  await expect(page.locator('.timer-pill')).toContainText('1:59');
+  await page.clock.fastForward(1000);
+  await expect(page.locator('.timer-pill')).toContainText('1:58');
   await page.clock.fastForward(125_000);
   await expect(page.locator('.timer-pill')).toContainText('0:00');
   await expect(page.locator('.timer-pill')).not.toHaveClass(/done/);

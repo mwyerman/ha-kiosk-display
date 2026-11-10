@@ -172,10 +172,14 @@
             ? ' · Paused'
             : ''}
         </p>
-        {#if activeTimer.finished}
+        {#if activeTimer.finished && connection?.canControl}
+          <button disabled={busy} onclick={() => controlTimer('cancel')}
+            >Dismiss</button
+          >
+        {:else if activeTimer.finished}
           <p>
-            Dismiss this alert using the native timer interface or voice. Custom
-            dismissal is not documented.
+            Dismiss this alert using the native timer interface or voice. Timer
+            controls are unavailable on this build.
           </p>
         {:else if connection?.canControl}
           <button

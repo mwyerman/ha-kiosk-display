@@ -67,7 +67,7 @@ export function presentTimers(
     const end = deadline(timer.ends_at);
     const seconds = Math.max(
       0,
-      Math.ceil(
+      Math.floor(
         timer.is_active && end !== null
           ? (end - now) / 1000
           : timer.seconds_left,
@@ -223,7 +223,9 @@ export function connectKiosk(
   for (const [name, listener] of listeners)
     window.addEventListener(name, listener);
   document.addEventListener('visibilitychange', resume);
-  const tick = setInterval(emit, 1000);
+  // Recompute from the native deadline frequently enough to avoid an extra
+  // second of visible lag from an interval out of phase with the countdown.
+  const tick = setInterval(emit, 100);
   emit();
   void refresh();
   return {
@@ -231,7 +233,9 @@ export function connectKiosk(
     async control(id: string, action: TimerAction): Promise<boolean> {
       if (
         !ks?.controlVoiceTimer ||
-        !nativeTimers.some((t) => t.timer_id === id && !t.finished)
+        !nativeTimers.some(
+          (t) => t.timer_id === id && (!t.finished || action === 'cancel'),
+        )
       )
         return false;
       try {
