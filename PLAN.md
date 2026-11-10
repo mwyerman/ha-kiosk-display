@@ -20,11 +20,11 @@ Task and acceptance checkboxes are the source of truth for completion. Phase num
 
 ### Completion log
 
-No implementation work has been verified yet. Replace the template row with actual entries (newest first):
+Implementation progress is recorded below (newest first).
 
 | Date | Phase / task | Status | Changes and verification evidence | Remaining work / blockers |
 |---|---|---|---|---|
-| YYYY-MM-DD | Phase N — task description | In progress / Blocked / Done | Summary; test commands/results or documentation links | Next steps, device checks, or none |
+| 2026-11-09 | Phase 1 — app foundation and prototype port | In progress | Svelte/TypeScript component port, static fixture adapters, disconnected production defaults, Docker/Compose configuration, and setup/diagnostic docs implemented. `npm run check` and `npm run build` pass; five Playwright tests pass. See `docs/integrations.md` and `README.md`. | Portal bridge/HA access, visual/touch/performance/keyboard/sleep acceptance remain unverified. Docker configuration is supplied but not run (Docker unavailable in agent environment). |
 
 ## Purpose and starting point
 
@@ -101,14 +101,14 @@ Hermes ── allowlisted tools/API ── app controller ── updates broadca
 
 Tasks:
 
-- [ ] Preserve `mockup.html` as the visual reference, clearly marked as a simulation; do not accidentally deploy its mock command parser/timer engine as production behavior.
-- [ ] Establish development and Docker deployment, local URL, production build, and Kiosk Satellite Custom Page configuration.
+- [x] Preserve `mockup.html` as the visual reference, clearly marked as a simulation; do not accidentally deploy its mock command parser/timer engine as production behavior. See `docs/assets.md`; the reference is unchanged and excluded from deployment.
+- [ ] Establish development and Docker deployment, local URL, production build, and Kiosk Satellite Custom Page configuration. **Implemented:** Vite development/build, production and development Docker targets, Compose services, and configuration instructions in `README.md`. **Pending:** run Docker deployment and configure/test the actual Portal.
 - [ ] As soon as the app shell loads on the Portal, verify viewport dimensions, access to the documented page/JS bridge, and whether a usable HA shared connection is exposed. Use a small diagnostic surface in the app if needed; record the available APIs in `docs/integrations.md`. If the HA connection is unavailable or unsuitable, plan an authenticated backend channel for Phase 2.
-- [ ] Create core screen components: `AmbientView`, `RecipeView`, `TimerPills`, `MusicPill`, `Overlay/Modal`, and a transient voice/status surface.
-- [ ] Match the prototype's visual hierarchy: green/cream palette, large recipe photo, left ingredient column, right steps column, optional bottom floating surfaces, large ambient clock.
-- [ ] Use initial fixture data and simulated states **behind well-defined adapters** so the UI can be tested without live services.
+- [x] Create core screen components: `AmbientView`, `RecipeView`, `TimerPills`, `MusicPill`, `Overlay/Modal`, and a transient voice/status surface. Implemented under `src/components/`; `Modal` uses native dialog focus handling.
+- [ ] Match the prototype's visual hierarchy: green/cream palette, large recipe photo, left ingredient column, right steps column, optional bottom floating surfaces, large ambient clock. **Implemented and browser-reviewed** at 1280 × 800; final visual verification on the Portal is pending. Sample photos are local, with an illustrative pasta image rather than the mockup's exact recipe photo.
+- [x] Use initial fixture data and simulated states **behind well-defined adapters** so the UI can be tested without live services. Presentation contracts in `src/lib/model.ts`; static fixtures only in development/explicit fixture builds. Production has no fixture recipe, timers, or music; no mock service engines or command parser.
 - [ ] Verify actual viewport/resolution, touch/scroll behavior, on-screen keyboard, WebView performance, reload behavior and display brightness/sleep behavior.
-- [ ] Preserve independent scroll positions where reasonable; ensure overlays cannot permanently obstruct the end of lists.
+- [x] Preserve independent scroll positions where reasonable; ensure overlays cannot permanently obstruct the end of lists. Reactive touch updates retain scroll positions; measured floating-surface height adds dynamic scroll clearance. Covered by browser tests; actual device ergonomics remain part of acceptance.
 
 - [ ] **Acceptance:** Cooking and ambient views work by touch in Kiosk Satellite on the Portal; demo fixtures render cleanly and match the intended composition; no development/simulation controls appear in production mode.
 
