@@ -307,7 +307,7 @@ button {
   text-shadow: 0 2px 12px #0004;
 }
 .screen.has-surfaces .ambient-info {
-  bottom: 130px;
+  bottom: calc(var(--surface-clearance, 110px) + 18px);
 }
 .surfaces {
   position: absolute;
@@ -344,15 +344,77 @@ button {
   flex: none;
   min-height: 64px;
 }
+.timer-row {
+  flex: 1 1 auto;
+  align-items: stretch;
+}
 .timer-pill {
+  flex: 0 0 320px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 16px;
+  border-radius: 20px;
   background: #f6f8f3;
   color: #33513d;
   border: 1px solid #d8e0d5;
+  box-shadow: 0 8px 24px #0003;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+.timer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.timer-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 20px;
+  font-weight: 600;
+}
+.timer-state {
+  font-size: 15px;
+  font-weight: 600;
+}
+.timer-controls {
+  display: flex;
+  gap: 8px;
+}
+.timer-controls button {
+  min-height: 56px;
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 12px;
+  background: #e0eadc;
+  font-size: 17px;
+  font-weight: 650;
+  text-align: center;
+}
+.timer-controls .timer-end {
+  background: #eeddd2;
+  color: #713f26;
+}
+a.timer-pill {
+  text-decoration: none;
+  touch-action: manipulation;
+  min-height: 132px;
+}
+a.timer-pill:focus-visible {
+  outline: 3px solid #789c80;
+  outline-offset: 2px;
+}
+.timer-dismiss-label {
+  font-size: 26px;
 }
 .timer-pill.done {
-  background: #f4dfd2;
-  color: #744928;
-  border-color: #ebc7b0;
+  background: #f6d2b4;
+  color: #623718;
+  border-color: #daa97e;
 }
 .pill-label {
   display: block;

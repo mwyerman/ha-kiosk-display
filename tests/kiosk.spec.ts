@@ -71,6 +71,112 @@ async function installBridge(page: Page, denied = false) {
   );
 }
 
+test('inline timer actions and confirmed ending need no modal', async ({
+  page,
+}) => {
+  await installBridge(page);
+  await page.goto('http://localhost:5174');
+  const card = page.locator('.timer-pill');
+  await expect(card.locator('.timer-toggle')).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  await card.locator('.timer-toggle').click();
+  await expect(
+    card.getByRole('button', { name: 'Pause', exact: true }),
+  ).toBeVisible();
+  await card.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(
+    card.getByRole('button', { name: 'Resume', exact: true }),
+  ).toBeVisible();
+  await expect(card).toContainText('Paused');
+  await card.getByRole('button', { name: 'End', exact: true }).click();
+  expect(await page.evaluate(() => (window as any).mock.calls.length)).toBe(1);
+  await card.getByRole('button', { name: 'Keep', exact: true }).click();
+  await expect(
+    card.getByRole('button', { name: 'End', exact: true }),
+  ).toBeVisible();
+  await card.getByRole('button', { name: 'End', exact: true }).click();
+  await card.getByRole('button', { name: 'End timer?', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  expect(
+    await page.evaluate(() => (window as any).mock.calls.at(-1).action),
+  ).toBe('cancel');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('timer controls remain scoped, failed actions retain state, and finishing clears confirmation', async ({
+  page,
+}) => {
+  await installBridge(page);
+  await page.goto('http://localhost:5174');
+  await expect(page.locator('.timer-pill')).toBeVisible();
+  await page.evaluate(() => {
+    const mock = (window as any).mock;
+    mock.timers.push({ ...mock.timers[0], timer_id: 'tea', name: 'Tea' });
+    mock.failControl = true;
+    window.dispatchEvent(
+      new CustomEvent('kiosksatellite:voice-timers', {
+        detail: { timers: mock.timers },
+      }),
+    );
+  });
+  const tea = page.getByRole('group', { name: 'Tea timer', exact: true });
+  await tea.locator('.timer-toggle').click();
+  await tea.getByRole('button', { name: 'Pause', exact: true }).click();
+  expect(await page.evaluate(() => (window as any).mock.calls.at(-1))).toEqual({
+    id: 'tea',
+    action: 'pause',
+    duration: undefined,
+  });
+  await expect(
+    tea.getByRole('button', { name: 'Pause', exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByText('Timer action failed or unsupported'),
+  ).toBeVisible();
+  await tea.getByRole('button', { name: 'End', exact: true }).click();
+  await page.evaluate(() => {
+    const mock = (window as any).mock;
+    mock.timers[1].finished = true;
+    mock.timers[1].is_active = false;
+    window.dispatchEvent(
+      new CustomEvent('kiosksatellite:voice-timers', {
+        detail: { timers: mock.timers },
+      }),
+    );
+  });
+  const finished = page.getByRole('link', {
+    name: 'Dismiss Tea timer',
+    exact: true,
+  });
+  await expect(finished).toHaveClass(/timer-pill/);
+  await expect(finished).toHaveAttribute('href', 'ks://voice/stop');
+  await expect(finished).toContainText('Tap to dismiss');
+  await expect(
+    page.getByRole('button', { name: 'End timer?', exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole('group', { name: 'Pasta timer' })
+    .locator('.timer-toggle')
+    .click();
+  await expect(
+    page
+      .getByRole('group', { name: 'Pasta timer' })
+      .getByRole('button', { name: 'Pause', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  for (const width of [1280, 1024, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(width);
+    const box = await finished.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(64);
+    await page.screenshot({ path: `test-results/inline-timers-${width}.png` });
+  }
+});
+
 test('kiosk development mode connects the live bridge without fixture controls', async ({
   page,
 }) => {
@@ -79,7 +185,7 @@ test('kiosk development mode connects the live bridge without fixture controls',
   await expect(page.locator('.fixture-controls')).toHaveCount(0);
   await expect(page.locator('.timer-pill')).toContainText('Pasta');
   await expect(page.getByLabel('Playing music')).toContainText('Kitchen song');
-  await page.locator('.timer-pill').click();
+  await page.locator('.timer-toggle').click();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Resume', exact: true }),
@@ -94,21 +200,21 @@ test('production uses native snapshots, events, controls and followed media', as
   await expect(page.locator('.timer-pill')).toContainText('Pasta');
   await expect(page.getByLabel('Playing music')).toContainText('Kitchen song');
   await expect(page.locator('.ambient')).toBeVisible();
-  await page.locator('.timer-pill').click();
+  await page.locator('.timer-toggle').click();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Resume', exact: true }),
   ).toBeVisible();
   await expect(page.locator('.timer-pill')).toContainText('1:30');
-  await page.getByRole('button', { name: '+1 minute', exact: true }).click();
+  await page.getByRole('button', { name: '+1 min', exact: true }).click();
   expect(await page.evaluate(() => (window as any).mock.calls[1])).toEqual({
     id: 'pasta',
     action: 'add',
     duration: { minutes: 1 },
   });
-  await page.getByRole('button', { name: 'Cancel timer', exact: true }).click();
+  await page.getByRole('button', { name: 'End', exact: true }).click();
+  await page.getByRole('button', { name: 'End timer?', exact: true }).click();
   await expect(page.locator('.timer-pill')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.evaluate(() =>
     window.dispatchEvent(
       new CustomEvent('kiosksatellite:kiosk-state', {
@@ -137,14 +243,13 @@ test('production uses native snapshots, events, controls and followed media', as
       }),
     ),
   );
-  await expect(page.locator('.timer-pill')).toContainText('Finished');
-  await page.locator('.timer-pill').click();
-  await expect(page.getByRole('button', { name: '+1 minute' })).toHaveCount(0);
+  await expect(page.locator('.timer-pill')).toContainText('Tap to dismiss');
+  await expect(page.getByRole('button', { name: '+1 min' })).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: 'Pause', exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole('link', { name: 'Dismiss', exact: true }),
+    page.getByRole('link', { name: 'Dismiss Pasta timer', exact: true }),
   ).toHaveAttribute('href', 'ks://voice/stop');
 });
 
@@ -167,8 +272,10 @@ test('finished-timer stop link works without timer controls and waits for native
       }),
     );
   });
-  await page.locator('.timer-pill').click();
-  const dismiss = page.getByRole('link', { name: 'Dismiss', exact: true });
+  const dismiss = page.getByRole('link', {
+    name: 'Dismiss Pasta timer',
+    exact: true,
+  });
   await expect(dismiss).toHaveAttribute('href', 'ks://voice/stop');
   // Emulate native URL interception, but not its unverified timer/audio effects.
   await dismiss.evaluate((link) =>
@@ -176,7 +283,7 @@ test('finished-timer stop link works without timer controls and waits for native
   );
   await dismiss.click();
   expect(await page.evaluate(() => (window as any).mock.calls)).toEqual([]);
-  await expect(page.locator('.timer-pill')).toContainText('Finished');
+  await expect(page.locator('.timer-pill')).toContainText('Tap to dismiss');
   await page.evaluate(() => {
     (window as any).mock.timers = [];
     window.dispatchEvent(

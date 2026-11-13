@@ -66,10 +66,10 @@ test('floating fixtures never switch views and final content clears them', async
   expect(finalIngredient!.y + finalIngredient!.height).toBeLessThan(
     surfaces!.y,
   );
-  await page.getByRole('button', { name: 'Pasta · preview' }).click();
-  await expect(page.getByRole('dialog')).toContainText('not a running timer');
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('.timer-pill').first()).toContainText(
+    'Static preview',
+  );
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Finish cooking' }).click();
   await expect(
     page.getByRole('button', { name: 'Open recipes', exact: true }),

@@ -33,11 +33,13 @@ The route is persistent; the dev process is intentionally on demand, not a boot 
 
 Port 5174 is reserved for the automated live-development test server; it is not the proxy upstream.
 
-## Test-first procedure
+## Fast iteration, final regression check
+
+During exploratory UX work, edit and let the user try the live dev page immediately. Use quick compile/readiness checks only; defer full browser suites, screenshot matrices and CI/image-build waits until the design is accepted for final commit/push. Update affected tests and run the suite once at that point. This lighter cadence does not waive verification for service logic, security or production deployments.
 
 1. Start `dev:kiosk` and configure the Portal's Kiosk Satellite Custom Page URL to `https://kiosk-dev.eos.mxwy.org/`. Keep Share Home Assistant connection enabled as needed by the existing bridge integration. Do not change voice routing, native alert ownership, or speaker settings.
 2. Make scoped source changes and regression tests. Vite hot reloads edits via the same HTTPS hostname; no image build/push is required.
-3. For timers, create a short timer and test running controls, finish, and **Dismiss**. Dismiss uses `ks://voice/stop`; verify both audio stopping and native-confirmed pill removal. Also check multiple timers. Browser tests do not establish native Android behavior.
+3. Timers start as compact pills; tap a running/paused timer to slide out Pause/Resume, +1 min and End, and tap again to collapse. Only one timer expands at once. End opens inline End timer?/Keep confirmation. Finished timers are compact, one-tap dismiss links using `ks://voice/stop`. The user accepted this sliding UX on the Portal. Timer state/audio remain native-owned.
 4. Hot updates may replace the document or reattach the bridge. Reloading while ringing is already known to stop native alert audio; do not count a reload/HMR-triggered stop as evidence that Dismiss worked. Let source edits settle, then create a fresh timer for acceptance.
 5. Run `npm run check` and `npm test`. Local container browser override: `LD_LIBRARY_PATH=/opt/data/tools/chromium-libs npm test -- --config playwright.local.config.ts`. This untracked machine-specific file selects the installed Chromium; normal CI uses `playwright.config.ts`.
 6. Ask the user to confirm the Portal behavior before publishing/deploying. Pushing this branch automatically tests and publishes GHCR images, but does not update the running production container. Deploy production only when explicitly approved, using pinned SSH and checkout Compose; preserve the previous image and verify the running revision and served app.

@@ -21,15 +21,11 @@
   let adapter = $state<DisplayAdapter>(disconnectedAdapter);
   let integration = $state<IntegrationStatus>({ ...initialStatus });
   let connection = $state<ReturnType<typeof connectKiosk>>();
-  let selectedTimer = $state('');
-  const activeTimer = $derived(
-    adapter.timers.find((t) => t.id === selectedTimer),
-  );
   let busy = $state(false);
-  async function controlTimer(action: TimerAction) {
+  async function controlTimer(id: string, action: TimerAction) {
     if (busy || !connection) return;
     busy = true;
-    const success = await connection.control(selectedTimer, action);
+    const success = await connection.control(id, action);
     busy = false;
     notify(success ? 'Timer updated' : 'Timer action failed or unsupported');
   }
@@ -93,6 +89,7 @@
   class="screen"
   class:fixture={fixtureMode}
   class:has-surfaces={hasSurfaces}
+  style:--surface-clearance={`${clearance}px`}
 >
   {#if cooking && adapter.recipe}
     <RecipeView
@@ -108,10 +105,10 @@
     <div class="surfaces" bind:this={surface}>
       {#if !fixtureMode || showTimers}<TimerPills
           timers={adapter.timers}
-          select={(timer) => {
-            selectedTimer = timer.id;
-            modal = fixtureMode ? `timer:${timer.label}` : 'timer';
-          }}
+          control={controlTimer}
+          canControl={connection?.canControl}
+          {busy}
+          preview={fixtureMode}
         />{/if}
       {#if (!fixtureMode || showMusic) && adapter.music}<MusicPill
           music={adapter.music}
@@ -166,35 +163,6 @@
     {:else if modal === 'diagnostics'}<Diagnostics
         {integration}
         {fixtureMode}
-      />
-    {:else if modal === 'timer'}
-      {#if activeTimer}
-        <p>
-          {activeTimer.label} · {activeTimer.remaining}{activeTimer.paused
-            ? ' · Paused'
-            : ''}
-        </p>
-        {#if activeTimer.finished}
-          <a class="quiet timer-dismiss" href="ks://voice/stop">Dismiss</a>
-        {:else if connection?.canControl}
-          <button
-            disabled={busy}
-            onclick={() =>
-              controlTimer(activeTimer?.paused ? 'resume' : 'pause')}
-            >{activeTimer.paused ? 'Resume' : 'Pause'}</button
-          >
-          <button disabled={busy} onclick={() => controlTimer('add')}
-            >+1 minute</button
-          >
-          <button disabled={busy} onclick={() => controlTimer('cancel')}
-            >Cancel timer</button
-          >
-        {:else}<p>Timer controls are unavailable on this build.</p>{/if}
-      {:else}<p>This timer is no longer present.</p>{/if}
-    {:else}<p>{modal.slice(6)}</p>
-      <p>
-        This is a static presentation fixture, not a running timer. Native timer
-        integration is planned for Phase 2.
-      </p>{/if}
+      />{/if}
   </Modal>
 {/if}
