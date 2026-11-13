@@ -77,4 +77,6 @@ Use the procedure in `README.md` and record results here. Do not mark Phase 1 ac
 - Added finished-timer cancellation through `controlVoiceTimer(id, 'cancel')`. All nine Playwright tests pass, including fractional-second boundary updates, successful cancellation, and failure retention/retry. `npm run check` reports zero errors/warnings and `npm run build` succeeds. Finished cancellation on the installed version remains unverified.
 - User confirms reloading while ringing stops the alert. This is a **confirmed unresolved limitation**, not an assumed recovery guarantee. These changes do not modify native audio or implement a replacement alert engine.
 
+- Finished-timer **Dismiss** now uses the documented `ks://voice/stop` dashboard link instead of `controlVoiceTimer(id, 'cancel')`. Running-timer controls are unchanged. The stop link is available independently of `controlVoiceTimer` support; the UI waits for native snapshots/events to remove finished pills and does not claim audio stopped. Browser tests verify the link, no timer-cancel call, and native-confirmed removal; real Portal audio and multiple-ringing-timer behavior still need verification.
+
 No existing voice routing, wake-word configuration, timer ownership, Sonos configuration, or credentials were changed.

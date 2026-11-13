@@ -209,6 +209,16 @@ button {
   color: #30473a;
   flex-shrink: 0;
 }
+.timer-dismiss {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+.timer-dismiss:focus-visible {
+  outline: 3px solid #789c80;
+  outline-offset: 3px;
+}
 .steps {
   overflow: auto;
   min-height: 0;

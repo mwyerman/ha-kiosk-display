@@ -128,26 +128,24 @@ test('production uses native snapshots, events, controls and followed media', as
   await expect(
     page.getByRole('button', { name: 'Pause', exact: true }),
   ).toHaveCount(0);
-  await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
-  await expect(page.locator('.timer-pill')).toHaveCount(0);
-  expect(await page.evaluate(() => (window as any).mock.calls.at(-1))).toEqual({
-    id: 'pasta',
-    action: 'cancel',
-    duration: undefined,
-  });
+  await expect(
+    page.getByRole('link', { name: 'Dismiss', exact: true }),
+  ).toHaveAttribute('href', 'ks://voice/stop');
 });
 
-test('failed finished-timer cancellation retains the pill until native confirmation', async ({
+test('finished-timer stop link works without timer controls and waits for native confirmation', async ({
   page,
 }) => {
   await installBridge(page);
+  await page.addInitScript(() => {
+    delete (window as any).kioskSatellite.controlVoiceTimer;
+  });
   await page.goto('http://localhost:4173');
   await expect(page.locator('.timer-pill')).toBeVisible();
   await page.evaluate(() => {
     const mock = (window as any).mock;
     mock.timers[0].finished = true;
     mock.timers[0].is_active = false;
-    mock.failControl = true;
     window.dispatchEvent(
       new CustomEvent('kiosksatellite:voice-timers', {
         detail: { timers: mock.timers },
@@ -155,15 +153,23 @@ test('failed finished-timer cancellation retains the pill until native confirmat
     );
   });
   await page.locator('.timer-pill').click();
-  await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
-  await expect(
-    page.getByText('Timer action failed or unsupported'),
-  ).toBeVisible();
+  const dismiss = page.getByRole('link', { name: 'Dismiss', exact: true });
+  await expect(dismiss).toHaveAttribute('href', 'ks://voice/stop');
+  // Emulate native URL interception, but not its unverified timer/audio effects.
+  await dismiss.evaluate((link) =>
+    link.addEventListener('click', (event) => event.preventDefault()),
+  );
+  await dismiss.click();
+  expect(await page.evaluate(() => (window as any).mock.calls)).toEqual([]);
   await expect(page.locator('.timer-pill')).toContainText('Finished');
   await page.evaluate(() => {
-    (window as any).mock.failControl = false;
+    (window as any).mock.timers = [];
+    window.dispatchEvent(
+      new CustomEvent('kiosksatellite:voice-timers', {
+        detail: { timers: [] },
+      }),
+    );
   });
-  await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
   await expect(page.locator('.timer-pill')).toHaveCount(0);
 });
 
