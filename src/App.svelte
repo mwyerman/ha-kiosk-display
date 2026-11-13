@@ -15,7 +15,9 @@
     type TimerAction,
   } from './lib/kiosk';
 
-  const fixtureMode = import.meta.env.DEV || import.meta.env.MODE === 'fixture';
+  const fixtureMode =
+    import.meta.env.MODE === 'fixture' ||
+    (import.meta.env.DEV && import.meta.env.MODE !== 'kiosk');
   let adapter = $state<DisplayAdapter>(disconnectedAdapter);
   let integration = $state<IntegrationStatus>({ ...initialStatus });
   let connection = $state<ReturnType<typeof connectKiosk>>();

@@ -71,6 +71,21 @@ async function installBridge(page: Page, denied = false) {
   );
 }
 
+test('kiosk development mode connects the live bridge without fixture controls', async ({
+  page,
+}) => {
+  await installBridge(page);
+  await page.goto('http://localhost:5174');
+  await expect(page.locator('.fixture-controls')).toHaveCount(0);
+  await expect(page.locator('.timer-pill')).toContainText('Pasta');
+  await expect(page.getByLabel('Playing music')).toContainText('Kitchen song');
+  await page.locator('.timer-pill').click();
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Resume', exact: true }),
+  ).toBeVisible();
+});
+
 test('production uses native snapshots, events, controls and followed media', async ({
   page,
 }) => {

@@ -7,6 +7,11 @@ export default defineConfig({
   },
   webServer: [
     {
+      command: 'npx vite --mode kiosk --host 127.0.0.1 --port 5174 --strictPort',
+      url: 'http://localhost:5174',
+      reuseExistingServer: !process.env.CI,
+    },
+    {
       command: 'npm run dev -- --port 5173 --strictPort',
       url: 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,

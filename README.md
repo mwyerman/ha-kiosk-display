@@ -10,6 +10,8 @@ Svelte 5 + TypeScript + Vite frontend, with ambient and recipe views, independen
 
 ## Local development
 
+For the EOS Portal live-test URL, start/stop instructions, proxy configuration and test-before-deploy procedure, see [`docs/local-kiosk-development.md`](docs/local-kiosk-development.md). `npm run dev:kiosk` uses the real native bridge with hot reload; ordinary `npm run dev` remains a static-fixture preview.
+
 Requires Node 22 and npm.
 
 ```sh
@@ -117,11 +119,11 @@ Only expose this service on a trusted LAN or behind an appropriate reverse proxy
 
 ## Phase 2 live integration
 
-Use the **production** image/tag, not `fixture-*` (development and fixture builds never invoke live APIs).
+Use the **production** image/tag or `npm run dev:kiosk`, not `fixture-*` or ordinary `npm run dev` (fixture modes never invoke live APIs).
 
 1. In Kiosk Satellite, enable **Settings → Home Assistant → Custom Pages → Share Home Assistant connection**. The app uses this shared connection; there is no browser token or backend HA proxy.
 2. Open the production URL as a Custom Page. Append `?diagnostics` to inspect integration status; close the modal to use the display normally. Do not share credentials or raw HA state when reporting issues.
-3. Create a short named timer by voice. Check its pill, pause/resume, +1 minute, cancel, and completion. Finished state comes from the kiosk, not from reaching zero locally. Use **Dismiss** on a finished timer to send native `cancel`. The pill stays until the kiosk confirms removal; failures are reported. Verify that this also stops the native alert on your installed version.
+3. Create a short named timer by voice. Check its pill, pause/resume, +1 minute, cancel, and completion. Finished state comes from the kiosk, not from reaching zero locally. Use **Dismiss** on a finished timer to open the native `ks://voice/stop` action. The pill stays until the kiosk confirms removal. Verify that this also stops the native alert on your installed version; see the live-development procedure for reload/HMR caveats.
 4. Play/pause the kiosk's configured followed speaker. Its title/artist pill should appear only while playing. No entity ID is needed for this read-only integration. Album art and media controls are not implemented.
 5. Test sleep/wake, reload while running, multiple timers, and **reload while ringing**. Documentation says document replacement stops native alert audio; automatic restoration of ringing is not established. This app neither plays alert audio nor modifies native timer overlays.
 6. Keep the kiosk's automatic native full-screen Now Playing disabled if enabled in your existing configuration. The app never opens it, but cannot prevent an independently configured native overlay. Diagnostics reports whether the kiosk says it is shown.

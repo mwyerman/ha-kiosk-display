@@ -1,0 +1,14 @@
+http:
+  routers:
+    kiosk-dev:
+      rule: Host(`kiosk-dev.eos.mxwy.org`)
+      entryPoints:
+        - websecure
+      service: kiosk-dev
+      tls:
+        certResolver: cloudflare
+  services:
+    kiosk-dev:
+      loadBalancer:
+        servers:
+          - url: http://hermes:5175
