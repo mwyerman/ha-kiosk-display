@@ -27,6 +27,26 @@ The route is persistent; the dev process is intentionally on demand, not a boot 
 
 ## Modes
 
+### Recipe backend (leave running alongside Vite)
+
+The live frontend needs the API on `127.0.0.1:5176`; a working page alone does not
+prove readiness. Start `server/index.mjs` with Node 24+ and the approved Mealie key
+in process environment (retrieve from EOS stack `.env` without printing or copying
+it into served source). Local preview uses `KIOSK_REQUIRE_PAIRING=false`,
+`HOST=127.0.0.1`, `PORT=5176`,
+`ALLOWED_ORIGINS=https://kiosk-dev.eos.mxwy.org`, and
+`SESSION_DB=/opt/data/workspaces/hs-kiosk-display/data/kiosk.sqlite`.
+No second key/pairing prompt is needed for this local preview. Anyone who can
+reach the preview can read recipes and change its shared session. Cross-site
+origin protection remains enabled. The Compose deployment also explicitly selects unpaired trusted-LAN mode. The CLI
+still fails closed unless that mode is explicitly selected or a pairing key is set.
+
+Keep both development processes running after validation. Check the actual HTTPS
+URL's `/api/health`, `/api/session`, and `/api/recipes` as well as the page/picker.
+Reusing a live Vite process means edits are immediately visible on the Portal;
+inspect running processes before edits, not just before starting a new server.
+These are background development processes, not reboot/container-restart services.
+
 - `npm run dev`: existing static-fixture UI on port 5173, live integration disabled.
 - `npm run dev:kiosk`: Vite mode `kiosk`, port 5175, real native timers/media/HA bridge, no fixture controls. Outside Kiosk Satellite it reports missing bridge capabilities; it does not fabricate state.
 - `npm run build`: production output remains fixture-free.

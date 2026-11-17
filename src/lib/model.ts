@@ -1,17 +1,24 @@
 export interface Ingredient {
   id: string;
-  name: string;
-  amount: number | null;
-  unit: string;
+  text: string;
+  section: string | null;
 }
 export interface Recipe {
   id: string;
   title: string;
-  photo: string;
+  photo: string | null;
   description: string;
-  servings: number;
+  servings: number | null;
+  yield: string | null;
+  source: string | null;
   ingredients: Ingredient[];
-  steps: { title: string; text: string }[];
+  steps: { id: string; title: string; text: string; section: string | null }[];
+}
+export interface RecipeSession {
+  revision: number;
+  recipe: Recipe | null;
+  checked: string[];
+  selected: string | null;
 }
 export interface Timer {
   id: string;

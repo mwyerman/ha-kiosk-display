@@ -6,6 +6,15 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+    environment:
+      MEALIE_URL: ${MEALIE_URL:-https://mealie.helios.mxwy.org}
+      MEALIE_API_KEY: ${MEALIE_API_KEY:-}
+      KIOSK_REQUIRE_PAIRING: "false"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      KIOSK_ACCESS_KEY: ${KIOSK_ACCESS_KEY:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - cooking-data:/data
   dev:
     profiles: [dev]
     build:
@@ -16,3 +25,6 @@ services:
     volumes:
       - ./src:/app/src
       - ./public:/app/public
+
+volumes:
+  cooking-data:

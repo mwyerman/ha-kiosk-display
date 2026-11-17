@@ -1,5 +1,19 @@
 import { test, expect, type Page } from '@playwright/test';
 
+// Timer/media tests isolate their independent recipe-session dependency.
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/session', (route) =>
+    route.fulfill({
+      json: {
+        revision: 0,
+        recipe: null,
+        checked: [],
+        selected: null,
+      },
+    }),
+  );
+});
+
 async function installBridge(page: Page, denied = false) {
   await page.addInitScript(
     ({ denied }) => {

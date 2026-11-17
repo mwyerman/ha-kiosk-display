@@ -2,17 +2,17 @@
 
 A locally hosted kitchen display for Kiosk Satellite, based on [`mockup.html`](mockup.html). See [`PLAN.md`](PLAN.md) for scope and progress.
 
-## Phase 1 status
+## Current implementation
 
-Svelte 5 + TypeScript + Vite frontend, with ambient and recipe views, independent scrollable ingredients/instructions, touch serving/check/highlight controls, floating timer/music presentation, accessible modal, transient feedback, and browser diagnostics.
+Svelte 5 + TypeScript + Vite frontend, with ambient and recipe views, independent scrollable ingredients/instructions, plain-text ingredients and step highlighting, floating timer/music presentation, accessible modal, transient feedback, and browser diagnostics. Recipes preserve original quantities; there are no serving-adjustment controls. The accepted recipe screen uses a faint background image, translucent reading surfaces and compact step headings; the recipe picker is a full-screen grid without automatic keyboard focus.
 
-**Phase 2 integration implemented; Portal verification pending.** Production reads native timers and followed-player metadata through Kiosk Satellite's documented JavaScript API. It starts in ambient mode; tapping it explains that recipe access is not connected. Development includes a fixture recipe and **static** timer/music previews (live integration disabled). There is no timer engine, mock voice parser, backend, persistence, or full-screen Now Playing. Touch fixture session state resets on reload. Portal acceptance is still pending.
+**Phase 3 implemented and Portal layout accepted; deployment approved.** Native timers and followed-player metadata use Kiosk Satellite's documented JavaScript API. The new production backend supplies Mealie search and persistent cooking sessions; see [`docs/mealie.md`](docs/mealie.md) for configuration and pairing. Ordinary development still includes a fixture recipe and **static** timer/music previews (live integration disabled); fixture state resets on reload. No replacement timer engine, mock voice parser, or full-screen Now Playing is implemented. Portal acceptance of Mealie remains pending.
 
 ## Local development
 
 For the EOS Portal live-test URL, start/stop instructions, proxy configuration and test-before-deploy procedure, see [`docs/local-kiosk-development.md`](docs/local-kiosk-development.md). `npm run dev:kiosk` uses the real native bridge with hot reload; ordinary `npm run dev` remains a static-fixture preview.
 
-Requires Node 22 and npm.
+Requires Node 24+ and npm. Mealie/backend setup is documented in [`docs/mealie.md`](docs/mealie.md).
 
 ```sh
 npm ci
@@ -44,7 +44,7 @@ GitHub Actions tests the app and builds **linux/amd64 and linux/arm64** images a
 ghcr.io/mwyerman/ha-kiosk-display
 ```
 
-Both image variants serve static files through unprivileged nginx on container port **8080**. The fixture variant is a preview, not a live integration or development server.
+Both image variants listen on container port **8080**. Production uses an unprivileged Node server for the app, Mealie API and SQLite cooking session; fixtures remain static nginx previews, not live integrations or development servers. See [`docs/mealie.md`](docs/mealie.md) for required production secrets and volume persistence.
 
 | Tag | Contents / update source |
 |---|---|
@@ -82,7 +82,7 @@ IMAGE_TAG=fixture-initial-work docker compose -f compose.registry.yaml pull
 IMAGE_TAG=fixture-initial-work docker compose -f compose.registry.yaml up -d
 ```
 
-Open `http://<docker-host-LAN-IP>:8080` and use that URL in Kiosk Satellite. Once merged, you can use `fixture-latest`. The production equivalents are `initial-work` and `latest`; production shows ambient with real timer/music pills when reported by Kiosk Satellite; recipe access is not implemented yet.
+Open `http://<docker-host-LAN-IP>:8080` and use that URL in Kiosk Satellite. Once merged, you can use `fixture-latest`. The production equivalents are `initial-work` and `latest`. New Phase 3 production builds also require Mealie/pairing configuration and a persistent volume; they resume the cooking session or show ambient, with real timer/music pills when reported by Kiosk Satellite.
 
 For a persistent configuration, create a local `.env` next to the Compose file (do not commit credentials):
 
@@ -101,7 +101,7 @@ docker compose -f compose.registry.yaml logs --tail=50
 
 These same `pull` and `up -d` commands update a running deployment after a successful Actions build. Restarting a container alone does **not** fetch a newer image. Pin a commit tag or image digest instead of a moving branch tag for controlled updates/rollback. If port 8080 is occupied, set `DISPLAY_PORT=8090` and open port 8090 instead. Stop any earlier source-built service using the same port before starting this deployment.
 
-If deploying through a Docker UI, select `ghcr.io/mwyerman/ha-kiosk-display:fixture-initial-work`, map host port 8080 to container port 8080, and set restart policy `unless-stopped`. Add GHCR credentials in that UI if keeping the package private. No volumes or application secrets are required in Phase 1.
+If deploying a static fixture preview through a Docker UI, select `ghcr.io/mwyerman/ha-kiosk-display:fixture-initial-work`, map host port 8080 to container port 8080, and set restart policy `unless-stopped`. Add GHCR credentials in that UI if keeping the package private. Static fixture images need no application secrets; production requires the configuration and volume in `docs/mealie.md`.
 
 ## Docker (build locally)
 
@@ -113,9 +113,9 @@ docker compose --profile dev up --build dev
 # Fixture-enabled development: http://<host-LAN-IP>:5173
 ```
 
-The production image serves static files as an unprivileged nginx user. The dev service mounts `src/` and `public/` for live edits; rebuild it after dependency/config changes. `docker build -t ha-kiosk-display .` also defaults to production. This image has not yet been run in the agent environment (Docker unavailable).
+The production image runs the app/API as an unprivileged Node user with persistent state in `/data`. The dev service mounts `src/` and `public/` for live edits; rebuild it after dependency/config changes. `docker build -t ha-kiosk-display .` also defaults to production. This image has not yet been run in the agent environment (Docker unavailable).
 
-Only expose this service on a trusted LAN or behind an appropriate reverse proxy. No credentials are needed in Phase 1. Future service credentials must remain server-side. These are relative-path local assets, not runtime third-party requests.
+Only expose this service on a trusted LAN or behind an appropriate reverse proxy. Production service credentials remain server-side. Fixture assets remain local; real recipe content/images are obtained through the backend from configured Mealie.
 
 ## Phase 2 live integration
 
@@ -134,10 +134,10 @@ Timer and media snapshots are fetched on load and resume (`visibilitychange`, `p
 
 1. Deploy on a machine reachable from the Portal; use its LAN address, not `localhost`.
 2. In the installed Kiosk Satellite's Custom Page configuration, set the URL to the development or production URL above. Exact labels/API availability depend on the installed version; do not replace the working Assist/timer/Sonos setup.
-3. Test fixture UI via the registry fixture image or development mode first. Tap **Open recipe**, select the sample, scroll both columns independently, change servings, check ingredients, and select a step. Turn on timer/media previews and verify the last ingredient/step can scroll fully above the pills. Tap a timer for its explanatory modal; close it and finish cooking.
+3. Test fixture UI via the registry fixture image or development mode first. Tap **Open recipe**, select the sample, scroll both columns independently, verify original servings, check ingredients, and select a step. Turn on timer/media previews and verify the last ingredient/step can scroll fully above the pills. Tap a timer for its explanatory modal; close it and finish cooking.
 4. Open **Diagnostics**, or append `?diagnostics` to any app URL. Capture the report and type into the notes field to test the on-screen keyboard. Notes are temporary and never uploaded. Production diagnostics reports bridge version, timer/media availability, shared HA access, last timer snapshot time, and browser metrics. Fixture builds do not connect to live services.
 5. Test reload, network interruption/recovery, photo failure, landscape sizing, touch accuracy, and smooth scrolling. Background/resume the page and confirm the clock catches up. Observe brightness/sleep/wake behavior without changing the existing kiosk configuration blindly.
-6. Load production and confirm no preview controls or fixture data appear. Real timer/music pills should appear only when the kiosk reports relevant state. Tap ambient to check the empty recipe explanation and close it.
+6. Load production and confirm no preview controls or fixture data appear. Real timer/music pills should appear only when the kiosk reports relevant state. Tap ambient to pair and open a Mealie recipe; test reload restoration without disturbing native timers. See `docs/mealie.md`.
 7. Record installed Kiosk Satellite/Android WebView versions and the results in [`docs/integrations.md`](docs/integrations.md). Bridge inspection requires the installed version's actual API documentation; do not infer support from desktop browser behavior or guess native bridge methods.
 
 Initial target is 1280 × 800 landscape, with responsive layout also browser-tested at 1024 × 600. The WebView must support ES2020, ResizeObserver, and native HTML dialog. Its actual version/compatibility remains an on-device check; a compatibility fallback may be needed for an old WebView.
@@ -157,7 +157,8 @@ Tests start development and production-preview servers, exercise recipe touch be
 - `src/lib/model.ts`: small presentation contracts and empty initial state.
 - `src/lib/kiosk.ts`: production bridge adapter, deadline countdowns, timer controls, followed-player state, and sanitized diagnostics.
 - `src/lib/fixtures.ts`: development/fixture-mode data, excluded from production bundles.
-- `src/App.svelte`: transient UI state and surface-height measurement. No durable cooking state yet; Phase 3 will move session ownership to the controller.
+- `src/App.svelte`: touch UI orchestration and surface-height measurement; production cooking state is owned by the backend.
+- `server/`: same-origin Mealie adapter, pairing and persistent SQLite cooking session; see `docs/mealie.md`.
 - `public/photos/`: local sample images; sources in `docs/assets.md`.
 
 Do not treat the Phase 1 presentation contracts as verified Kiosk Satellite API shapes. Timer/media ownership remains with native services in later phases.

@@ -1,5 +1,55 @@
 # Integration observations
 
+## Phase 3 — Mealie and persistent cooking sessions (2026-11-17)
+
+### Verified implementation
+
+- Node 24.22.1: 13 backend tests pass, covering pairing/hashed persistent cookies,
+  CSRF, rate limits, recipe normalization, bounded upstream requests/images,
+  session revisions/concurrency, restart restoration, static-file protection and CLI.
+- Svelte check: zero errors/warnings. Production build succeeds without fixture data.
+- Full Chromium suite: 24 tests pass, including 12 new recipe tests plus existing
+  display/native bridge regressions. Two expected missing-backend proxy errors occur
+  in tests that explicitly remove API routes; no live backend is needed for this suite.
+- Real service: Mealie v3.16.0 at `https://mealie.helios.mxwy.org`; authenticated
+  listing reports 25 recipes. The obsolete LAN port 9925 refuses connections.
+- `scripts/test-mealie-live.mjs`: actual list/search/fetch/image checks for Halal
+  Style Chicken Platter, The Best Creamy Chicken Enchiladas, Soy Marinaded Wings,
+  and Green Curry Chicken. Every ingredient display string and instruction text
+  compared to the upstream record; no scaling or invented missing servings.
+- Actual normalized recipe session opened, checked, highlighted, restarted and
+  restored with the same cookie; finish cleared the test session. A separate
+  ephemeral SQLite database was deleted afterward; production state was untouched.
+- `LIVE_BROWSER=true` runs the built production UI with the real backend and Mealie,
+  without intercepted routes: pair/search/open/check/select/reload/finish all passed.
+  Inspected the real Halal recipe screenshot at 1280x800: sectioned ingredients and
+  instructions, readable independent columns, no scaling controls, no visible overlap.
+- Mealie key retrieved from the approved EOS environment into process memory only;
+  no credential file was created in the project, no token printed, no Mealie writes.
+
+### Decisions and remaining acceptance
+
+Original ingredient `display` wins over numeric fields. Many imported ingredients
+have quantity zero but full text in display/note. Step summary is the step heading;
+title is its section heading. Missing photo/servings are explicit nulls. A stored
+recipe snapshot remains authoritative until finished/reopened, so upstream edits or
+outages do not change an active cook underneath the user. Search/new opens require
+Mealie; images have a visible failure fallback. Revision conflicts refresh state
+and require a new tap instead of silently retrying a write.
+
+The backend runs inside the existing production app container and stores one kitchen
+session in SQLite. Paired browsers share that session intentionally. This is not
+voice integration or a general multi-device controller. Mealie credentials remain
+server-side; a **separate** kiosk access key is exchanged for an HttpOnly cookie.
+Setup, HTTPS cookie configuration, data ownership and recovery: `docs/mealie.md`.
+
+Production remains unchanged. No commit/push/image publication/deployment occurred.
+The live development URL/backend has not been started for this change. Still needed:
+configure a separate pairing key for that preview, test touch/keyboard/scroll on the
+Portal with real native timers/music, then seek approval to publish/deploy. Docker
+image execution itself has not been verified in this environment.
+
+
 ## Phase 1 — local browser validation (2026-11-09)
 
 ### Setup

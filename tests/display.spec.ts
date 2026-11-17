@@ -23,8 +23,8 @@ test('recipe touch actions preserve independent scroll positions', async ({
     ingredients.evaluate((el) => el.scrollTop),
     steps.evaluate((el) => el.scrollTop),
   ]);
-  await page.getByRole('button', { name: 'More servings' }).click();
-  await expect(page.locator('.sub')).toContainText('5 servings');
+  await expect(page.getByRole('button', { name: /servings/i })).toHaveCount(0);
+  await expect(page.locator('.sub')).toHaveCount(0);
   expect(await ingredients.evaluate((el) => el.scrollTop)).toBe(positions[0]);
   expect(await steps.evaluate((el) => el.scrollTop)).toBe(positions[1]);
   await steps.getByRole('button').nth(2).click();
@@ -32,9 +32,9 @@ test('recipe touch actions preserve independent scroll positions', async ({
     'aria-pressed',
     'true',
   );
-  const ingredient = ingredients.getByRole('button').nth(1);
-  await ingredient.click();
-  await expect(ingredient).toHaveAttribute('aria-pressed', 'true');
+  await expect(ingredients.getByRole('button')).toHaveCount(0);
+  expect(await ingredients.evaluate((el) => el.scrollTop)).toBe(positions[0]);
+  expect(await steps.evaluate((el) => el.scrollTop)).toBe(positions[1]);
   await page.screenshot({ path: 'test-results/recipe-1280x800.png' });
 });
 
@@ -60,7 +60,7 @@ test('floating fixtures never switch views and final content clears them', async
   });
   await ingredients.evaluate((el) => (el.scrollTop = el.scrollHeight));
   const finalIngredient = await ingredients
-    .getByRole('button')
+    .locator('.ing')
     .last()
     .boundingBox();
   expect(finalIngredient!.y + finalIngredient!.height).toBeLessThan(
@@ -83,12 +83,18 @@ test('floating fixtures never switch views and final content clears them', async
 test('production excludes fixtures and recovers cleanly after reload', async ({
   page,
 }) => {
+  await page.route('**/api/**', (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: 'Recipe service unavailable.' },
+    }),
+  );
   await page.goto('http://localhost:4173/?view=recipe&fixtures=true');
   await expect(page.locator('.fixture-controls')).toHaveCount(0);
   await expect(page.locator('.surfaces')).toHaveCount(0);
   await page.getByRole('button', { name: 'Open recipes', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText(
-    'Recipes aren’t connected yet',
+    'Unable to load recipes. Please try again.',
   );
   await page.reload();
   await expect(
@@ -116,7 +122,8 @@ test('photo failure retains fallback and smaller landscape viewport stays bounde
   await page.setViewportSize({ width: 1024, height: 600 });
   await page.route('**/photos/**', (route) => route.abort());
   await openRecipe(page);
-  await expect(page.getByText('Recipe photograph unavailable')).toBeVisible();
+  await expect(page.locator('.recipe-backdrop')).toHaveCount(0);
+  await expect(page.locator('.ing').first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     1024,
   );

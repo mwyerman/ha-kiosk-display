@@ -7,21 +7,18 @@ export const fixtureAdapter: DisplayAdapter = {
     photo: '/photos/pasta.jpg',
     description: '30 min · Easy',
     servings: 4,
+    yield: null,
+    source: null,
     ingredients: [
-      ['Olive oil', 2, 'tbsp'],
-      ['Garlic cloves', 4, ''],
-      ['Crushed tomatoes', 400, 'g'],
-      ['Heavy cream', 200, 'ml'],
-      ['Pasta', 350, 'g'],
-      ['Fresh basil', 1, 'handful'],
-      ['Salt & black pepper', null, 'to taste'],
-      ['Parmesan cheese', 40, 'g'],
-    ].map(([name, amount, unit], i) => ({
-      id: `ingredient-${i}`,
-      name: String(name),
-      amount: amount as number | null,
-      unit: String(unit),
-    })),
+      '2 tbsp Olive oil',
+      '4 Garlic cloves',
+      '400 g Crushed tomatoes',
+      '200 ml Heavy cream',
+      '350 g Pasta',
+      '1 handful Fresh basil',
+      'Salt & black pepper to taste',
+      '40 g Parmesan cheese',
+    ].map((text, i) => ({ id: `ingredient-${i}`, text, section: null })),
     steps: [
       [
         'Prepare your ingredients',
@@ -51,7 +48,12 @@ export const fixtureAdapter: DisplayAdapter = {
         'Finish and serve',
         'Top with basil and parmesan, then serve immediately.',
       ],
-    ].map(([title, text]) => ({ title, text })),
+    ].map(([title, text], i) => ({
+      id: `step-${i}`,
+      title,
+      text,
+      section: null,
+    })),
   },
   timers: [
     {
