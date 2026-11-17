@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { Recipe } from '../lib/model';
   let {
     recipe,
@@ -20,6 +21,18 @@
     disabled?: boolean;
   } = $props();
   let failedPhoto = $state<string | null>(null);
+  let stepContainer: HTMLDivElement | undefined = $state();
+  $effect(() => {
+    const step = selected;
+    const container = stepContainer;
+    if (step && container)
+      void tick().then(() => {
+        if (selected === step && container.isConnected)
+          container
+            .querySelector('.step.selected')
+            ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+  });
   const source = $derived(
     recipe.source && /^https?:\/\//i.test(recipe.source) ? recipe.source : null,
   );
@@ -66,6 +79,7 @@
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (scroll regions need keyboard access) -->
     <div
       class="steps"
+      bind:this={stepContainer}
       tabindex="0"
       role="region"
       aria-label="Scrollable instructions"

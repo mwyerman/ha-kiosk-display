@@ -28,8 +28,35 @@
   let pairingKey = $state('');
   let pairingBusy = $state(false);
   let pairingError = $state('');
+  let sessionEvents: EventSource | undefined;
+  let pendingSessionRefresh = false;
+  function startSessionEvents() {
+    if (fixtureMode || disposed || sessionEvents) return;
+    sessionEvents = new EventSource('/api/session/events');
+    sessionEvents.addEventListener('open', () => void loadSession());
+    sessionEvents.addEventListener('message', (event) => {
+      try {
+        const update = JSON.parse((event as MessageEvent).data);
+        if (
+          Number.isSafeInteger(update.revision) &&
+          update.revision !== session.revision
+        )
+          void loadSession();
+      } catch {
+        /* Ignore malformed notifications; reconnect and resume refresh authoritative state. */
+      }
+    });
+  }
+  function drainSessionRefresh() {
+    if (!pendingSessionRefresh || disposed) return;
+    pendingSessionRefresh = false;
+    void loadSession();
+  }
   async function loadSession(force = false, keepError = false) {
-    if (sessionBusy && !force) return;
+    if (sessionBusy && !force) {
+      pendingSessionRefresh = true;
+      return;
+    }
     const request = ++sessionSequence;
     sessionLoading = true;
     try {
@@ -45,9 +72,16 @@
       if (!response.ok) throw new Error();
       const result = await response.json();
       if (!disposed && request === sessionSequence) {
+        if (
+          result.recipe &&
+          result.revision !== session.revision &&
+          modal === 'recipes'
+        )
+          modal = '';
         session = result;
         cooking = !!session.recipe;
         needsPairing = false;
+        startSessionEvents();
         if (!keepError) sessionError = '';
       }
     } catch {
@@ -56,7 +90,10 @@
           ? 'The cooking session changed. Refresh failed; please retry before making changes.'
           : 'Unable to restore the cooking session. Please retry.';
     } finally {
-      if (request === sessionSequence) sessionLoading = false;
+      if (request === sessionSequence) {
+        sessionLoading = false;
+        if (!sessionBusy) drainSessionRefresh();
+      }
     }
   }
   async function pair() {
@@ -141,6 +178,7 @@
           'Unable to update the cooking session. Your displayed state is unchanged. Please retry.';
     } finally {
       sessionBusy = false;
+      drainSessionRefresh();
     }
   }
   import {
@@ -219,6 +257,7 @@
       for (const name of events) window.removeEventListener(name, resume);
       document.removeEventListener('visibilitychange', resume);
       connection?.dispose();
+      sessionEvents?.close();
       clearTimeout(notification);
     };
   });

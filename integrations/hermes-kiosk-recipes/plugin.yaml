@@ -1,0 +1,19 @@
+name: hermes-kiosk-recipes
+version: 0.1.0
+description: Search Mealie and control the configured shared kitchen cooking session.
+provides_tools:
+  - kiosk_find_recipe
+  - kiosk_current_recipe
+  - kiosk_recipe_control
+  - kiosk_go_to_step
+provides_hooks:
+  - pre_llm_call
+config_schema:
+  base_url:
+    type: string
+    default: http://127.0.0.1:5176
+    label: Kiosk backend URL
+  voice_key:
+    type: secret
+    env: KIOSK_VOICE_KEY
+    label: Kiosk service credential

@@ -41,6 +41,12 @@ reach the preview can read recipes and change its shared session. Cross-site
 origin protection remains enabled. The Compose deployment also explicitly selects unpaired trusted-LAN mode. The CLI
 still fails closed unless that mode is explicitly selected or a pairing key is set.
 
+Luna recipe voice control additionally needs the separate `KIOSK_VOICE_KEY` in
+the API process environment, matching Luna's profile-scoped secret. Do not use the
+Mealie token for this. See `voice-recipes.md` for plugin settings, test commands,
+the shared-dev-session scope and rollback. Without this key, voice control is
+disabled; ordinary browser recipes still work.
+
 Keep both development processes running after validation. Check the actual HTTPS
 URL's `/api/health`, `/api/session`, and `/api/recipes` as well as the page/picker.
 Reusing a live Vite process means edits are immediately visible on the Portal;

@@ -107,6 +107,7 @@ async function bounded(response, limit) {
 
 export function createApp({
   accessKey,
+  voiceKey,
   requirePairing = true,
   mealieUrl = 'https://mealie.helios.mxwy.org',
   mealieKey = '',
@@ -166,6 +167,13 @@ export function createApp({
   const getRecipe = async (id) =>
     normalizeRecipe(await upstream(`/api/recipes/${validId(id)}`));
   let writes = Promise.resolve();
+  const sessionClients = new Set();
+  const publishSession = (revision) => {
+    const frame = `data: ${JSON.stringify({ revision })}\n\n`;
+    for (const client of sessionClients) {
+      if (!client.write(frame)) client.destroy();
+    }
+  };
   const mutateSession = async (input) => {
     const fields = {
       open: ['type', 'recipeId', 'revision'],
@@ -223,9 +231,111 @@ export function createApp({
       db.exec('ROLLBACK');
       throw error;
     }
+    publishSession(state.revision);
     return state;
   };
   const attempts = new Map();
+  const queueMutation = (input) => {
+    const action = writes.then(() => mutateSession(input));
+    writes = action.catch(() => {});
+    return action;
+  };
+  const voiceAction = async (input) => {
+    if (input.action === 'current' && Object.keys(input).length === 1)
+      return readSession();
+    if (input.action === 'find') {
+      if (
+        Object.keys(input).some(
+          (k) => !['action', 'query', 'open'].includes(k),
+        ) ||
+        typeof input.query !== 'string' ||
+        !input.query.trim() ||
+        input.query.length > 200 ||
+        typeof input.open !== 'boolean'
+      )
+        throw fail(400, 'Invalid recipe search');
+      const revision = readSession().revision;
+      const query = new URLSearchParams({
+        search: input.query.trim(),
+        page: '1',
+        perPage: '20',
+      });
+      const result = await upstream(`/api/recipes?${query}`);
+      const items = (result.items || []).slice(0, 20).map(summary);
+      const total = Number(result.total) || 0;
+      const exact = items.filter(
+        (r) =>
+          r.title.toLocaleLowerCase() ===
+          input.query.trim().toLocaleLowerCase(),
+      );
+      const titleMatches = items.filter((r) =>
+        r.title
+          .toLocaleLowerCase()
+          .includes(input.query.trim().toLocaleLowerCase()),
+      );
+      const complete = total <= 20 && Number(result.totalPages || 1) <= 1;
+      const match =
+        complete && exact.length === 1
+          ? exact[0]
+          : complete && titleMatches.length === 1
+            ? titleMatches[0]
+            : total === 1 && items.length === 1
+              ? items[0]
+              : null;
+      if (input.open && match)
+        return queueMutation({ type: 'open', recipeId: match.id, revision });
+      return {
+        items,
+        total,
+        needsChoice: input.open && total > 1,
+        opened: false,
+      };
+    }
+    if (['next', 'previous', 'goto', 'finish'].includes(input.action)) {
+      const fields =
+        input.action === 'goto'
+          ? ['action', 'revision', 'step']
+          : ['action', 'revision'];
+      if (
+        Object.keys(input).some((k) => !fields.includes(k)) ||
+        !Number.isSafeInteger(input.revision) ||
+        input.revision < 0
+      )
+        throw fail(400, 'Invalid voice control');
+      const state = readSession();
+      if (state.revision !== input.revision)
+        throw fail(
+          409,
+          'Session changed; read the current recipe and ask the user to retry',
+        );
+      if (!state.recipe) throw fail(409, 'No recipe is open');
+      if (input.action === 'finish')
+        return queueMutation({ type: 'finish', revision: input.revision });
+      const steps = state.recipe.steps;
+      const current = steps.findIndex((s) => s.id === state.selected);
+      const index =
+        input.action === 'goto'
+          ? input.step - 1
+          : input.action === 'next'
+            ? current + 1
+            : current - 1;
+      if (
+        (input.action === 'goto' && !Number.isSafeInteger(input.step)) ||
+        index < 0 ||
+        index >= steps.length
+      )
+        throw fail(
+          400,
+          'That step is outside the recipe; your place is unchanged',
+        );
+      return queueMutation({
+        type: 'select',
+        stepId: steps[index].id,
+        revision: input.revision,
+      });
+    }
+    throw fail(400, 'Invalid voice action');
+  };
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
@@ -342,6 +452,15 @@ export function createApp({
         );
         return json(res, 200, { ok: true });
       }
+      if (url.pathname === '/api/voice' && req.method === 'POST') {
+        if (!voiceKey) throw fail(404, 'Voice control is disabled');
+        const bearer = /^Bearer (\S+)$/.exec(
+          req.headers.authorization || '',
+        )?.[1];
+        if (!bearer || !timingSafeEqual(hash(bearer), hash(voiceKey)))
+          throw fail(401, 'Voice authentication required');
+        return json(res, 200, await voiceAction(await body(req)));
+      }
       const token = /(?:^|;\s*)kiosk_session=([A-Za-z0-9_-]{43})(?:;|$)/.exec(
         req.headers.cookie || '',
       )?.[1];
@@ -355,11 +474,31 @@ export function createApp({
         throw fail(401, 'Pair this kiosk first');
       if (url.pathname === '/api/session' && req.method === 'GET')
         return json(res, 200, readSession());
+      if (url.pathname === '/api/session/events' && req.method === 'GET') {
+        if (sessionClients.size >= 32)
+          throw fail(503, 'Too many session subscribers');
+        res.writeHead(200, {
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-store',
+          'x-accel-buffering': 'no',
+        });
+        res.write(
+          `retry: 2000\ndata: ${JSON.stringify({ revision: readSession().revision })}\n\n`,
+        );
+        sessionClients.add(res);
+        const heartbeat = setInterval(() => {
+          if (!res.write(': keepalive\n\n')) res.destroy();
+        }, 15000);
+        heartbeat.unref();
+        res.once('close', () => {
+          clearInterval(heartbeat);
+          sessionClients.delete(res);
+        });
+        return;
+      }
       if (url.pathname === '/api/session' && req.method === 'POST') {
         const input = await body(req);
-        const action = writes.then(() => mutateSession(input));
-        writes = action.catch(() => {});
-        return json(res, 200, await action);
+        return json(res, 200, await queueMutation(input));
       }
       if (url.pathname === '/api/recipes' && req.method === 'GET') {
         const search = url.searchParams.get('search') || '';

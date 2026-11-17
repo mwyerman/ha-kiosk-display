@@ -24,6 +24,7 @@ try {
     mealieUrl: env.MEALIE_URL || 'https://mealie.helios.mxwy.org',
     mealieKey: env.MEALIE_API_KEY || '',
     accessKey: env.KIOSK_ACCESS_KEY,
+    voiceKey: env.KIOSK_VOICE_KEY,
     requirePairing,
     dbPath: env.SESSION_DB || './data/kiosk.sqlite',
     staticDir: env.STATIC_DIR || undefined,
@@ -43,6 +44,7 @@ try {
   for (const signal of ['SIGINT', 'SIGTERM'])
     process.once(signal, () => {
       server.close(() => process.exit(0));
+      server.closeAllConnections();
     });
 } catch (error) {
   console.error(

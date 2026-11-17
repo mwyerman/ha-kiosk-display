@@ -12,6 +12,7 @@ services:
       KIOSK_REQUIRE_PAIRING: "false"
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       KIOSK_ACCESS_KEY: ${KIOSK_ACCESS_KEY:-}
+      KIOSK_VOICE_KEY: ${KIOSK_VOICE_KEY:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
     volumes:
       - cooking-data:/data

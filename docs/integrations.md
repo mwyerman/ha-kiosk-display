@@ -1,5 +1,35 @@
 # Integration observations
 
+## Phase 4 — Luna recipe voice, development only (2026-11-17)
+
+- Live at `https://kiosk-dev.eos.mxwy.org/`; API/Vite left running. Production
+  app, Mealie records, HA integration code and satellite settings were not changed.
+- Luna-only native plugin with four recipe tools and one per-user-turn live-state
+  hook; dedicated service bearer credential, no added shell/browser/web permissions.
+  Implementation and operation: `docs/voice-recipes.md`.
+- 20 backend tests, 6 plugin tests and all 25 Chromium browser tests pass.
+  Svelte check reports zero errors/warnings; build succeeds; plugin validation passes.
+- `scripts/test-voice-live.py --yes` passed through the real HA conversation service
+  and Luna, watching the real HTTPS page without route mocks: enchiladas open,
+  ingredient question, exact step-three jump, peek without advancing, next/previous,
+  second-browser touch-open of White Chicken Chili, fresh voice identification and
+  voice close. The final version passed twice consecutively. Final dev session is
+  empty/ambient. No Mealie writes.
+- Live tests exposed and addressed deferred-tool discovery confusion, numbered-jump
+  miscounting and stale recipe answers after touch changes. Direct tool schemas,
+  a separate numbered-step tool and new-turn metadata are intentional. A repeat
+  exposed "next step" being answered as a peek; explicit next/previous utterances
+  now receive an action-vs-question hint in new-turn context (no hook-side writes).
+  Speech can still be more verbose than requested; arbitrary phrasing is not a
+  deterministic command parser and should be included in user acceptance.
+- Native wake word/microphone/STT/TTS and the physical Portal remain user acceptance
+  checks; the text conversation test does not prove those. One shared dev session
+  is intentional; requests from any Luna satellite target it, not a routed room.
+- No commit, push, image publication, production deployment, HA/Hermes restart,
+  timer/music configuration change or subagent was used for this implementation.
+
+Earlier sections below describe their original checkpoints, not current dev readiness.
+
 ## Phase 3 — Mealie and persistent cooking sessions (2026-11-17)
 
 ### Verified implementation

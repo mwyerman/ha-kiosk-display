@@ -9,8 +9,9 @@ reading surfaces, one titlebar and compact inline step headings. The picker is a
 full-screen thumbnail grid and focuses its heading, not the search input, to avoid
 opening the touch keyboard. Ingredients are plain text: no checkboxes or tap
 mutations. No scaling, serving adjustments or additional metadata blocks take up
-cooking-screen space. Native timers/music remain independent. Voice, imports,
-meal planning and general multi-device routing are out of scope.
+cooking-screen space. Native timers/music remain independent. Development voice
+control through Luna is documented in `voice-recipes.md`; imports, meal planning
+and general multi-device routing remain out of scope.
 
 ## Deployment
 
@@ -87,7 +88,8 @@ the neutral reading background; recipe text remains usable.
 
 Session writes use revision checks. Conflict refreshes state and asks for another
 tap rather than overwriting changes. Multiple browsers intentionally share one
-kitchen session. This is not a real-time multi-device/voice controller. Scroll is
+kitchen session. The development voice integration adds SSE revision notifications
+for external updates; it is not a general multi-device routing system. Scroll is
 transient, selected step is durable. Legacy checked-item fields are ignored by
 the UI and retained for compatibility, not exposed as a checklist.
 
